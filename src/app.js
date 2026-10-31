@@ -13,13 +13,49 @@ const dateLabel = (iso) => {
 };
 const round2 = (v) => Math.round((v + Number.EPSILON) * 100) / 100;
 
+async function collectVotes() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120_000);
+  try {
+    const response = await fetch(SUPABASE_URL + "/functions/v1/global-top10", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_KEY,
+        Authorization: "Bearer " + SUPABASE_KEY
+      },
+      body: JSON.stringify({ mode: "manual" }),
+      signal: controller.signal
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || "투표 수집에 실패했습니다.");
+    return data;
+  } catch (error) {
+    if (error.name === "AbortError") throw new Error("수집 요청이 2분을 초과했습니다. Supabase와 History 저장 상태를 확인해 주세요.");
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function getCurrent() {
   const response = await fetch(CURRENT_URL, {
-    headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY }
+    headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY },
+    cache: "no-store"
   });
   const data = await response.json();
   if (!response.ok || !data.ok) throw new Error(data.error || "현재 데이터를 가져오지 못했습니다.");
   return data;
+}
+
+function dailyRows(history, date) {
+  const entry = history[date];
+  if (Array.isArray(entry)) return entry; // legacy daily format
+  if (entry && Array.isArray(entry.snapshots) && entry.snapshots.length) {
+    return entry.snapshots[entry.snapshots.length - 1].rows || [];
+  }
+  if (entry && Array.isArray(entry.rows)) return entry.rows;
+  return [];
 }
 
 async function getHistory() {
@@ -63,7 +99,7 @@ function renderCurrent(raw, history) {
   const sorted = rankRows(calculated);
   const kstDate = new Intl.DateTimeFormat("en-CA", { timeZone:"Asia/Seoul", year:"numeric", month:"2-digit", day:"2-digit" }).format(new Date(raw.collectedAt));
   const previous = previousSnapshot(history, kstDate);
-  const previousCalculated = previous ? calculate(previous.rows) : [];
+  const previousCalculated = previous ? calculate(dailyRows(history, previous.date)) : [];
   const previousRanked = rankRows(previousCalculated);
   const previousByName = new Map(previousCalculated.map((r) => [r.artist, r]));
   const previousRanks = new Map((previousRanked || []).map((r,i) => [r.artist, i+1]));
@@ -99,9 +135,10 @@ function renderCurrent(raw, history) {
 
 function renderHistory(history) {
   const dates = Object.keys(history).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
-  const artists = dates.length ? [...history[dates.at(-1)]].map(r => r.artist).sort((a,b)=>a.localeCompare(b)) : [];
+  const latestRows = dates.length ? dailyRows(history, dates.at(-1)) : [];
+  const artists = latestRows.map(r => r.artist).sort((a,b)=>a.localeCompare(b));
   const rankByDate = new Map();
-  for (const date of dates) rankByDate.set(date, rankRows(calculate(history[date])));
+  for (const date of dates) rankByDate.set(date, rankRows(calculate(dailyRows(history, date))));
   const rankBody = artists.map((artist) => {
     const cells = dates.map((date) => {
       const ranked = rankByDate.get(date);
@@ -115,8 +152,8 @@ function renderHistory(history) {
   const voteBody = artists.map((artist) => {
     const cells = dates.map((date, index) => {
       if (index === 0) return '<td class="muted">—</td>';
-      const now = history[date].find(r => r.artist === artist);
-      const before = history[dates[index-1]].find(r => r.artist === artist);
+      const now = dailyRows(history, date).find(r => r.artist === artist);
+      const before = dailyRows(history, dates[index-1]).find(r => r.artist === artist);
       if (!now || !before) return '<td class="muted">—</td>';
       const g = now.global - before.global;
       const k = now.korea - before.korea;
@@ -131,20 +168,31 @@ function renderHistory(history) {
 async function refresh() {
   const button = $("refresh-button");
   button.disabled = true;
-  $("data-status").textContent = "데이터 연결 중";
+  const originalLabel = button.textContent;
+  button.textContent = "투표 수집 중…";
+  $("data-status").textContent = "Melon · Berriz 수집 중";
   $("data-status").className = "status";
   try {
+    const collected = await collectVotes();
+    $("data-status").textContent = "Supabase 저장 완료 · History 확인 중";
     const [current, history] = await Promise.all([getCurrent(), getHistory()]);
     renderCurrent(current, history);
     renderHistory(history);
-    $("data-status").textContent = "LIVE · " + current.rowCount + " ARTISTS";
-    $("data-status").className = "status ok";
+    if (collected.historySaved) {
+      $("data-status").textContent = "저장 완료 · " + current.rowCount + " ARTISTS";
+      $("data-status").className = "status ok";
+    } else {
+      $("data-status").textContent = "투표 갱신 완료 · History 저장 실패";
+      $("data-status").className = "status error";
+      $("score-hint").textContent = "Supabase 투표는 갱신됐지만 GitHub History 저장에 실패했습니다: " + (collected.historyError || "원인 미확인");
+    }
   } catch (error) {
-    $("data-status").textContent = "연결 실패";
+    $("data-status").textContent = "수집 실패";
     $("data-status").className = "status error";
     $("current-table").querySelector("tbody").innerHTML = '<tr><td colspan="8">' + String(error.message) + '</td></tr>';
   } finally {
     button.disabled = false;
+    button.textContent = originalLabel;
   }
 }
 $("refresh-button").addEventListener("click", refresh);
