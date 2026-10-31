@@ -50,12 +50,25 @@ async function getCurrent() {
 
 function dailyRows(history, date) {
   const entry = history[date];
-  if (Array.isArray(entry)) return entry; // legacy daily format
+  if (Array.isArray(entry)) return entry; // Legacy official daily format
+  if (entry && Array.isArray(entry.rows)) return entry.rows;
   if (entry && Array.isArray(entry.snapshots) && entry.snapshots.length) {
     return entry.snapshots[entry.snapshots.length - 1].rows || [];
   }
-  if (entry && Array.isArray(entry.rows)) return entry.rows;
   return [];
+}
+
+function dailyHistoryDates(history) {
+  const dailyMap = history?._meta?.dailySnapshotAtByDate;
+  if (dailyMap && typeof dailyMap === "object" && !Array.isArray(dailyMap)) {
+    return Object.keys(dailyMap)
+      .filter((date) => /^\\d{4}-\\d{2}-\\d{2}$/.test(date) && dailyRows(history, date).length > 0)
+      .sort();
+  }
+  // Before this marker existed, date rows were the legacy daily records.
+  return Object.keys(history)
+    .filter((date) => /^\\d{4}-\\d{2}-\\d{2}$/.test(date) && dailyRows(history, date).length > 0)
+    .sort();
 }
 
 async function getHistory() {
@@ -109,9 +122,8 @@ function previousSnapshot(history, currentCollectedAt) {
   if (latest && Array.isArray(latest.rows)) return latest;
 
   // Backward compatibility for older History JSON without snapshot metadata.
-  const dates = Object.keys(history)
-    .filter((d) => /^\\d{4}-\\d{2}-\\d{2}$/.test(d) && d < currentCollectedAt.slice(0, 10))
-    .sort();
+  const dates = dailyHistoryDates(history)
+    .filter((d) => d < currentCollectedAt.slice(0, 10));
   return dates.length
     ? { date: dates.at(-1), collectedAt: history._meta?.lastCollectedAtByDate?.[dates.at(-1)] || null, rows: dailyRows(history, dates.at(-1)) }
     : null;
@@ -165,11 +177,19 @@ function renderCurrent(raw, history) {
 }
 
 function renderHistory(history) {
-  const dates = Object.keys(history).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
-  const latestRows = dates.length ? dailyRows(history, dates.at(-1)) : [];
-  const artists = latestRows.map(r => r.artist).sort((a,b)=>a.localeCompare(b));
+  // Sections 02 and 03 are based exclusively on official 23:59 KST captures.
+  const dates = dailyHistoryDates(history);
+  if (!dates.length) {
+    const waiting = '<tr><td class="muted">아직 23:59(KST) 일일 스냅샷이 없습니다. 오늘 기록은 23:59 자동 수집 후 표시됩니다.</td></tr>';
+    table($("rank-table"), ["기록 상태"], waiting);
+    table($("votes-table"), ["기록 상태"], waiting);
+    return;
+  }
+
+  const artists = Object.keys(CHART_SCORES).sort((a,b)=>a.localeCompare(b));
   const rankByDate = new Map();
   for (const date of dates) rankByDate.set(date, rankRows(calculate(dailyRows(history, date))));
+
   const rankBody = artists.map((artist) => {
     const cells = dates.map((date) => {
       const ranked = rankByDate.get(date);
