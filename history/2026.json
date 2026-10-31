@@ -2,7 +2,7 @@
   "2026-10-31": [
     {
       "artist": "aespa",
-      "korea": 10613,
+      "korea": 10615,
       "global": 4300
     },
     {
@@ -22,12 +22,12 @@
     },
     {
       "artist": "BOYNEXTDOOR",
-      "korea": 19874,
+      "korea": 19875,
       "global": 2597
     },
     {
       "artist": "BTS",
-      "korea": 46353,
+      "korea": 46356,
       "global": 91038
     },
     {
@@ -47,7 +47,7 @@
     },
     {
       "artist": "G-DRAGON",
-      "korea": 82045,
+      "korea": 82048,
       "global": 5031
     },
     {
@@ -72,7 +72,7 @@
     },
     {
       "artist": "IVE",
-      "korea": 15386,
+      "korea": 15389,
       "global": 3483
     },
     {
@@ -82,7 +82,7 @@
     },
     {
       "artist": "LE SSERAFIM",
-      "korea": 966,
+      "korea": 969,
       "global": 284
     },
     {
@@ -107,7 +107,7 @@
     },
     {
       "artist": "RESCENE",
-      "korea": 156570,
+      "korea": 156573,
       "global": 1270
     },
     {
@@ -159,9 +159,9 @@
       "korea",
       "global"
     ],
-    "updatedAt": "2026-10-31T14:09:24.656Z",
+    "updatedAt": "2026-10-31T14:09:33.483Z",
     "lastCollectedAtByDate": {
-      "2026-10-31": "2026-10-31T14:09:24.656Z"
+      "2026-10-31": "2026-10-31T14:09:33.483Z"
     }
   }
 }
