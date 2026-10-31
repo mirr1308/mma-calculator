@@ -49,7 +49,7 @@ function rankRows(rows) {
 }
 
 function previousSnapshot(history, currentDate) {
-  const dates = Object.keys(history).filter((d) => /^\\d{4}-\\d{2}-\\d{2}$/.test(d) && d < currentDate).sort();
+  const dates = Object.keys(history).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d < currentDate).sort();
   return dates.length ? { date: dates.at(-1), rows: history[dates.at(-1)] } : null;
 }
 
@@ -98,7 +98,7 @@ function renderCurrent(raw, history) {
 }
 
 function renderHistory(history) {
-  const dates = Object.keys(history).filter((d) => /^\\d{4}-\\d{2}-\\d{2}$/.test(d)).sort();
+  const dates = Object.keys(history).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
   const artists = dates.length ? [...history[dates.at(-1)]].map(r => r.artist).sort((a,b)=>a.localeCompare(b)) : [];
   const rankByDate = new Map();
   for (const date of dates) rankByDate.set(date, rankRows(calculate(history[date])));
