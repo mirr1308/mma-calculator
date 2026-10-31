@@ -107,11 +107,12 @@ function minimumVotesForTopTen(rows) {
     return ranked.findIndex((row) => row.artist === TARGET_ARTIST_FOR_THRESHOLD) + 1;
   };
 
-  // Report the minimum cumulative vote total from the current daily snapshot onward.
-  let low = Math.ceil(targetCurrentVotes);
-  if (rankAtVotes(low) <= 10) return low;
+  // Find the absolute minimum cumulative vote total that reaches rank 10,
+  // independent of how many votes the target already has in this snapshot.
+  let low = 0;
+  if (rankAtVotes(low) <= 10) return 0;
 
-  let high = Math.max(1, low, Math.ceil(competitorMaxVotes));
+  let high = Math.max(1, Math.ceil(targetCurrentVotes), Math.ceil(competitorMaxVotes));
   const maxSearch = 1_000_000_000_000_000;
 
   while (rankAtVotes(high) > 10 && high < maxSearch) {
@@ -139,11 +140,33 @@ function renderThresholdHistory(history) {
   }
 
   const cells = dates.map((date) => {
-    const requiredVotes = minimumVotesForTopTen(dailyRows(history, date));
-    return '<td class="score">' + (requiredVotes === null ? "—" : number(requiredVotes)) + '</td>';
+    const rows = dailyRows(history, date);
+    const target = rows.find((row) => row.artist === TARGET_ARTIST_FOR_THRESHOLD);
+    const requiredVotes = minimumVotesForTopTen(rows);
+    const currentVotes = target
+      ? Math.max(0, Number(target.korea || 0) + Number(target.global || 0))
+      : null;
+    const difference = requiredVotes !== null && currentVotes !== null
+      ? requiredVotes - currentVotes
+      : null;
+
+    const requiredText = requiredVotes === null ? "—" : number(requiredVotes);
+    const currentText = currentVotes === null ? "—" : number(currentVotes);
+    const differenceText = difference === null
+      ? "—"
+      : (difference > 0 ? "+" : "") + number(difference);
+    const differenceClass = difference === null
+      ? "muted"
+      : difference > 0 ? "up" : difference < 0 ? "down" : "flat";
+
+    return '<td class="threshold-cell">' +
+      '<div><span>최소 누적 득표수</span><strong>' + requiredText + '</strong></div>' +
+      '<div><span>현재 득표수</span><strong>' + currentText + '</strong></div>' +
+      '<div><span>차이</span><strong class="' + differenceClass + '">' + differenceText + '</strong></div>' +
+      '</td>';
   }).join("");
 
-  // One unlabeled data row; each date is a column.
+  // Keep one data row only; each date is a column with three values inside its cell.
   table($("threshold-table"), dates.map(dateLabel), "<tr>" + cells + "</tr>");
 }
 
