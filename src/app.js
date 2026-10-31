@@ -195,5 +195,26 @@ async function refresh() {
     button.textContent = originalLabel;
   }
 }
+
+async function loadDashboard() {
+  const button = $("refresh-button");
+  button.disabled = true;
+  $("data-status").textContent = "저장된 데이터 불러오는 중";
+  $("data-status").className = "status";
+  try {
+    const [current, history] = await Promise.all([getCurrent(), getHistory()]);
+    renderCurrent(current, history);
+    renderHistory(history);
+    $("data-status").textContent = "LIVE · " + current.rowCount + " ARTISTS";
+    $("data-status").className = "status ok";
+  } catch (error) {
+    $("data-status").textContent = "연결 실패";
+    $("data-status").className = "status error";
+    $("current-table").querySelector("tbody").innerHTML = '<tr><td colspan="8">' + String(error.message) + '</td></tr>';
+  } finally {
+    button.disabled = false;
+  }
+}
+
 $("refresh-button").addEventListener("click", refresh);
-refresh();
+loadDashboard();
