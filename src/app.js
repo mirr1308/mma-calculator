@@ -62,12 +62,12 @@ function dailyHistoryDates(history) {
   const dailyMap = history?._meta?.dailySnapshotAtByDate;
   if (dailyMap && typeof dailyMap === "object" && !Array.isArray(dailyMap)) {
     return Object.keys(dailyMap)
-      .filter((date) => /^\\d{4}-\\d{2}-\\d{2}$/.test(date) && dailyRows(history, date).length > 0)
+      .filter((date) => /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) && dailyRows(history, date).length > 0)
       .sort();
   }
   // Before this marker existed, date rows were the legacy daily records.
   return Object.keys(history)
-    .filter((date) => /^\\d{4}-\\d{2}-\\d{2}$/.test(date) && dailyRows(history, date).length > 0)
+    .filter((date) => /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) && dailyRows(history, date).length > 0)
     .sort();
 }
 
