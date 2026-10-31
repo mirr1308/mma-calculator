@@ -1,7 +1,167 @@
 {
+  "2026-10-31": [
+    {
+      "artist": "aespa",
+      "korea": 10613,
+      "global": 4300
+    },
+    {
+      "artist": "BABYMONSTER",
+      "korea": 710,
+      "global": 3171
+    },
+    {
+      "artist": "BIGBANG",
+      "korea": 3207,
+      "global": 4811
+    },
+    {
+      "artist": "BLACKPINK",
+      "korea": 650,
+      "global": 931
+    },
+    {
+      "artist": "BOYNEXTDOOR",
+      "korea": 19874,
+      "global": 2597
+    },
+    {
+      "artist": "BTS",
+      "korea": 46353,
+      "global": 91038
+    },
+    {
+      "artist": "CORTIS",
+      "korea": 16185,
+      "global": 43379
+    },
+    {
+      "artist": "ENHYPEN",
+      "korea": 4182,
+      "global": 13132
+    },
+    {
+      "artist": "EXO",
+      "korea": 6499,
+      "global": 3864
+    },
+    {
+      "artist": "G-DRAGON",
+      "korea": 82045,
+      "global": 5031
+    },
+    {
+      "artist": "Hearts2Hearts",
+      "korea": 13995,
+      "global": 66447
+    },
+    {
+      "artist": "i-dle",
+      "korea": 849,
+      "global": 1001
+    },
+    {
+      "artist": "ILLIT",
+      "korea": 3448,
+      "global": 2184
+    },
+    {
+      "artist": "IU",
+      "korea": 8354,
+      "global": 5367
+    },
+    {
+      "artist": "IVE",
+      "korea": 15386,
+      "global": 3483
+    },
+    {
+      "artist": "JENNIE",
+      "korea": 857,
+      "global": 389
+    },
+    {
+      "artist": "LE SSERAFIM",
+      "korea": 966,
+      "global": 284
+    },
+    {
+      "artist": "NCT DREAM",
+      "korea": 16666,
+      "global": 21542
+    },
+    {
+      "artist": "NCT WISH",
+      "korea": 57996,
+      "global": 8027
+    },
+    {
+      "artist": "NewJeans",
+      "korea": 3208,
+      "global": 3765
+    },
+    {
+      "artist": "NMIXX",
+      "korea": 3782,
+      "global": 146
+    },
+    {
+      "artist": "RESCENE",
+      "korea": 156570,
+      "global": 1270
+    },
+    {
+      "artist": "RIIZE",
+      "korea": 44479,
+      "global": 10377
+    },
+    {
+      "artist": "ROSÉ",
+      "korea": 670,
+      "global": 296
+    },
+    {
+      "artist": "SEVENTEEN",
+      "korea": 8775,
+      "global": 3215
+    },
+    {
+      "artist": "Stray Kids",
+      "korea": 1668,
+      "global": 1336
+    },
+    {
+      "artist": "TOMORROW X TOGETHER",
+      "korea": 6865,
+      "global": 5672
+    },
+    {
+      "artist": "TWICE",
+      "korea": 727,
+      "global": 708
+    },
+    {
+      "artist": "TWS",
+      "korea": 20308,
+      "global": 1821
+    },
+    {
+      "artist": "YENA",
+      "korea": 1125,
+      "global": 159
+    }
+  ],
   "_meta": {
-    "description": "MMA 2026 daily vote snapshots. Values are cumulative source votes, not daily deltas.",
+    "description": "Latest daily cumulative MMA vote snapshots. Intraday snapshots are stored separately.",
     "timezone": "Asia/Seoul",
-    "fields": ["artist", "korea", "global"]
+    "fields": [
+      "artist",
+      "korea",
+      "global"
+    ],
+    "updatedAt": "2026-10-31T14:09:24.656Z",
+    "lastCollectedAtByDate": {
+      "2026-10-31": "2026-10-31T14:09:24.656Z"
+    }
   }
 }
