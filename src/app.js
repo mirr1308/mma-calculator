@@ -71,6 +71,83 @@ function dailyHistoryDates(history) {
     .sort();
 }
 
+// The target artist identifier is kept in JS; it is never rendered as a label in the HTML.
+const TARGET_ARTIST_FOR_THRESHOLD = "RIIZE";
+
+function minimumVotesForTopTen(rows) {
+  const target = rows.find((row) => row.artist === TARGET_ARTIST_FOR_THRESHOLD);
+  const targetChartScore = CHART_SCORES[TARGET_ARTIST_FOR_THRESHOLD];
+  if (!target || !Number.isFinite(targetChartScore) || !rows.length) return null;
+
+  const competitors = rows.filter((row) => row.artist !== TARGET_ARTIST_FOR_THRESHOLD);
+  if (competitors.some((row) => !Number.isFinite(CHART_SCORES[row.artist]))) return null;
+
+  const targetCurrentVotes = Math.max(0, Number(target.korea || 0) + Number(target.global || 0));
+  const competitorMaxVotes = Math.max(
+    0,
+    ...competitors.map((row) => Number(row.korea || 0) + Number(row.global || 0))
+  );
+
+  // Mirror the dashboard's exact score rounding and tie-break rules.
+  const rankAtVotes = (candidateVotes) => {
+    const maxVote = Math.max(candidateVotes, competitorMaxVotes);
+    const ranked = rows.map((row) => {
+      const totalVote = row.artist === TARGET_ARTIST_FOR_THRESHOLD
+        ? candidateVotes
+        : Number(row.korea || 0) + Number(row.global || 0);
+      const voteScore = maxVote ? round2(totalVote / maxVote * 20) : 0;
+      const totalScore = round2(CHART_SCORES[row.artist] + voteScore);
+      return { artist: row.artist, totalVote, totalScore };
+    }).sort((a, b) =>
+      b.totalScore - a.totalScore ||
+      b.totalVote - a.totalVote ||
+      a.artist.localeCompare(b.artist)
+    );
+
+    return ranked.findIndex((row) => row.artist === TARGET_ARTIST_FOR_THRESHOLD) + 1;
+  };
+
+  // Report the minimum cumulative vote total from the current daily snapshot onward.
+  let low = Math.ceil(targetCurrentVotes);
+  if (rankAtVotes(low) <= 10) return low;
+
+  let high = Math.max(1, low, Math.ceil(competitorMaxVotes));
+  const maxSearch = 1_000_000_000_000_000;
+
+  while (rankAtVotes(high) > 10 && high < maxSearch) {
+    high = Math.min(maxSearch, high * 2);
+  }
+  if (rankAtVotes(high) > 10) return null;
+
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    if (rankAtVotes(mid) <= 10) high = mid;
+    else low = mid + 1;
+  }
+  return low;
+}
+
+function renderThresholdHistory(history) {
+  const dates = dailyHistoryDates(history);
+  if (!dates.length) {
+    table(
+      $("threshold-table"),
+      ["23:59 기록 대기"],
+      '<tr><td class="muted">첫 공식 일일 스냅샷은 매일 23:59(KST) 자동 수집 후 표시됩니다.</td></tr>'
+    );
+    return;
+  }
+
+  const cells = dates.map((date) => {
+    const requiredVotes = minimumVotesForTopTen(dailyRows(history, date));
+    return '<td class="score">' + (requiredVotes === null ? "—" : number(requiredVotes)) + '</td>';
+  }).join("");
+
+  // One unlabeled data row; each date is a column.
+  table($("threshold-table"), dates.map(dateLabel), "<tr>" + cells + "</tr>");
+}
+
+
 async function getHistory() {
   try {
     const response = await fetch(HISTORY_URL + "?v=" + Date.now(), { cache: "no-store" });
@@ -229,6 +306,7 @@ async function refresh() {
     const [current, history] = await Promise.all([getCurrent(), getHistory()]);
     renderCurrent(current, history);
     renderHistory(history);
+    renderThresholdHistory(history);
     if (collected.historySaved) {
       $("data-status").textContent = "저장 완료 · " + current.rowCount + " ARTISTS";
       $("data-status").className = "status ok";
@@ -256,6 +334,7 @@ async function loadDashboard() {
     const [current, history] = await Promise.all([getCurrent(), getHistory()]);
     renderCurrent(current, history);
     renderHistory(history);
+    renderThresholdHistory(history);
     $("data-status").textContent = "LIVE · " + current.rowCount + " ARTISTS";
     $("data-status").className = "status ok";
   } catch (error) {
