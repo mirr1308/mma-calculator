@@ -1,0 +1,41 @@
+name: Save daily MMA history
+
+on:
+  schedule:
+    # 00:05 KST (after the Supabase 23:59 KST collector)
+    - cron: "5 15 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mma-daily-history
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Save daily snapshot
+        env:
+          SUPABASE_URL: https://kxrjzpwujwujtkjugpqu.supabase.co
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: node scripts/save-history.mjs
+      - name: Commit history
+        run: |
+          if git diff --quiet -- history/; then
+            echo "No history changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add history/
+          git commit -m "chore: save daily MMA vote history"
+          git push
