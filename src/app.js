@@ -243,7 +243,6 @@ function renderCurrent(raw, history) {
   const previousByName = new Map(previousCalculated.map((r) => [r.artist, r]));
   const previousRanks = new Map((previousRanked || []).map((r,i) => [r.artist, i+1]));
   $("max-vote").textContent = number(Math.max(...calculated.map(r => r.totalVote)));
-  $("artist-count").textContent = raw.rowCount + " ARTISTS";
   $("updated-at").textContent = "수집 " + new Date(raw.collectedAt).toLocaleString("ko-KR", { timeZone:"Asia/Seoul" }) + " KST";
 
   const rows = (sorted || [...calculated].sort((a,b) => b.totalVote-a.totalVote)).map((r) => {
@@ -273,7 +272,6 @@ function renderCurrent(raw, history) {
         : "직전 저장 기록과 비교했습니다.")
       : "비교할 이전 수집 기록이 없어 증감은 표시하지 않습니다.")
     : "Chart Score 30개 중 일부 또는 전체가 미설정입니다. config.js에 원본 점수를 입력하면 Total Score 순위와 점수 증감이 자동 계산됩니다.";
-  $("max-score").textContent = "20.00";
 }
 
 function renderHistory(history) {
@@ -286,7 +284,12 @@ function renderHistory(history) {
     return;
   }
 
-  const artists = Object.keys(CHART_SCORES).sort((a,b)=>a.localeCompare(b));
+  // Sections 02 and 03 show only the 20 artists with the highest original Chart Score.
+  // Rank positions themselves are still calculated against the complete 30-artist field.
+  const artists = Object.entries(CHART_SCORES)
+    .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 20)
+    .map(([artist]) => artist);
   const rankByDate = new Map();
   for (const date of dates) rankByDate.set(date, rankRows(calculate(dailyRows(history, date))));
 
