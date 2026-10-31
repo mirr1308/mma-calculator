@@ -84,9 +84,37 @@ function rankRows(rows) {
   return [...rows].sort((a,b) => b.totalScore - a.totalScore || b.totalVote - a.totalVote || a.artist.localeCompare(b.artist));
 }
 
-function previousSnapshot(history, currentDate) {
-  const dates = Object.keys(history).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d < currentDate).sort();
-  return dates.length ? { date: dates.at(-1), rows: history[dates.at(-1)] } : null;
+function previousSnapshot(history, currentCollectedAt) {
+  const meta = history?._meta || {};
+  const latest = meta.latestSnapshot;
+  const previous = meta.previousSnapshot;
+
+  // The latest saved snapshot represents the current reading if timestamps match.
+  // In that case compare against the snapshot immediately before it.
+  if (
+    latest && typeof latest.collectedAt === "string" &&
+    Date.parse(latest.collectedAt) <= Date.parse(currentCollectedAt)
+  ) {
+    if (
+      Date.parse(latest.collectedAt) === Date.parse(currentCollectedAt) &&
+      previous && Array.isArray(previous.rows)
+    ) {
+      return previous;
+    }
+    if (Array.isArray(latest.rows)) return latest;
+  }
+
+  // If the live Supabase value is newer than the latest saved History entry,
+  // compare against that latest saved entry while GitHub catches up.
+  if (latest && Array.isArray(latest.rows)) return latest;
+
+  // Backward compatibility for older History JSON without snapshot metadata.
+  const dates = Object.keys(history)
+    .filter((d) => /^\\d{4}-\\d{2}-\\d{2}$/.test(d) && d < currentCollectedAt.slice(0, 10))
+    .sort();
+  return dates.length
+    ? { date: dates.at(-1), collectedAt: history._meta?.lastCollectedAtByDate?.[dates.at(-1)] || null, rows: dailyRows(history, dates.at(-1)) }
+    : null;
 }
 
 function table(el, headers, body) {
@@ -97,9 +125,8 @@ function table(el, headers, body) {
 function renderCurrent(raw, history) {
   const calculated = calculate(raw.rows);
   const sorted = rankRows(calculated);
-  const kstDate = new Intl.DateTimeFormat("en-CA", { timeZone:"Asia/Seoul", year:"numeric", month:"2-digit", day:"2-digit" }).format(new Date(raw.collectedAt));
-  const previous = previousSnapshot(history, kstDate);
-  const previousCalculated = previous ? calculate(dailyRows(history, previous.date)) : [];
+  const previous = previousSnapshot(history, raw.collectedAt);
+  const previousCalculated = previous ? calculate(previous.rows || dailyRows(history, previous.date)) : [];
   const previousRanked = rankRows(previousCalculated);
   const previousByName = new Map(previousCalculated.map((r) => [r.artist, r]));
   const previousRanks = new Map((previousRanked || []).map((r,i) => [r.artist, i+1]));
@@ -128,7 +155,11 @@ function renderCurrent(raw, history) {
   table($("current-table"), ["아티스트","현재 순위","Total Vote","Vote Score","Chart Score","Total Score","점수 증감","순위 증감"], rows);
   const complete = Object.values(CHART_SCORES).every(Number.isFinite);
   $("score-hint").textContent = complete
-    ? (previous ? dateLabel(previous.date) + " 최종 스냅샷과 비교했습니다." : "이전 날짜 스냅샷이 없어 증감은 표시하지 않습니다.")
+    ? (previous
+      ? (previous.collectedAt
+        ? new Date(previous.collectedAt).toLocaleString("ko-KR", { timeZone:"Asia/Seoul" }) + " 수집 기록과 비교했습니다."
+        : "직전 저장 기록과 비교했습니다.")
+      : "비교할 이전 수집 기록이 없어 증감은 표시하지 않습니다.")
     : "Chart Score 30개 중 일부 또는 전체가 미설정입니다. config.js에 원본 점수를 입력하면 Total Score 순위와 점수 증감이 자동 계산됩니다.";
   $("max-score").textContent = "20.00";
 }
