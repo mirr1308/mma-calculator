@@ -1,0 +1,7 @@
+{
+  "_meta": {
+    "description": "MMA 2026 daily vote snapshots. Values are cumulative source votes, not daily deltas.",
+    "timezone": "Asia/Seoul",
+    "fields": ["artist", "korea", "global"]
+  }
+}
