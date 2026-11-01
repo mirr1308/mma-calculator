@@ -454,7 +454,7 @@ function renderNetVoteChart(history, dates) {
     '<text x="' + x(index) + '" y="' + (height - 22) + '" text-anchor="middle" fill="#aeb8c9" font-size="11">' + dateLabel(date) + '</text>'
   ).join("");
 
-  const lines = series.map((item) => {
+  const lines = series.map((item, seriesIndex) => {
     const segments = [];
     let currentSegment = [];
     item.values.forEach((value, index) => {
@@ -477,29 +477,150 @@ function renderNetVoteChart(history, dates) {
         ).join("")
       : "";
     const points = item.values.map((value, index) => value === null ? "" :
-      '<circle cx="' + x(index) + '" cy="' + y(value) + '" r="3.4" fill="' + (item.colors.length > 1 ? item.colors[0] : item.colors[0]) + '" stroke="#111722" stroke-width="1.2"/>'
+      '<circle class="net-chart-point" data-series-index="' + seriesIndex + '" data-value-index="' + index + '" tabindex="0" role="button" aria-label="' + item.artist + ' ' + dateLabel(chartDates[index]) + ' ' + number(value) + '표" cx="' + x(index) + '" cy="' + y(value) + '" r="4.2" fill="' + item.colors[0] + '" stroke="#111722" stroke-width="1.2"/>'
     ).join("");
 
-    return '<g>' + halo +
-      '<path d="' + path + '" fill="none" stroke="' + stroke + '" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>' +
-      points + '</g>';
+    const visibleLine = path
+      ? '<path class="net-chart-line" d="' + path + '" fill="none" stroke="' + stroke + '" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>'
+      : "";
+    const hitLine = path
+      ? '<path class="net-chart-hit" data-series-index="' + seriesIndex + '" d="' + path + '" fill="none" stroke="#ffffff" stroke-opacity="0.01" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" pointer-events="stroke"/>'
+      : "";
+
+    return '<g class="net-chart-series" data-series-index="' + seriesIndex + '">' +
+      '<title>' + item.artist + '</title>' + halo + visibleLine + hitLine + points + '</g>';
   }).join("");
 
-  const legend = series.map((item) => {
+  const legend = series.map((item, index) => {
     const swatch = item.colors.length > 1
       ? "linear-gradient(90deg," + item.colors.join(",") + ")"
       : item.colors[0];
     const border = item.artist === "BLACKPINK" ? "border:1px solid #9ba3b2;" : "";
-    return '<div class="net-chart-legend-item"><span class="net-chart-swatch" style="background:' + swatch + ';' + border + '"></span><span>' + item.artist + '</span></div>';
+    return '<button type="button" class="net-chart-legend-button" data-series-index="' + index + '" aria-label="' + item.artist + ' 그래프 선 강조">' +
+      '<span class="net-chart-swatch" style="background:' + swatch + ';' + border + '"></span>' +
+      '<span>' + item.artist + '</span></button>';
   }).join("");
 
   mount.innerHTML =
-    '<div class="net-chart-scroll"><svg class="net-chart-svg" viewBox="0 0 ' + width + ' ' + height + '" width="' + width + '" height="' + height + '" role="img" aria-label="20개 아티스트의 일자별 총 순증가 득표 선형 그래프">' +
-    '<defs>' + defs + '</defs>' +
-    '<text x="' + margin.left + '" y="13" fill="#aeb8c9" font-size="10">일일 순증가 득표수</text>' +
-    grid + xLabels + lines +
-    '</svg></div><div class="net-chart-legend">' + legend + '</div>';
+    '<div class="net-chart-shell">' +
+      '<div class="net-chart-scroll"><svg class="net-chart-svg" viewBox="0 0 ' + width + ' ' + height + '" width="' + width + '" height="' + height + '" role="img" aria-label="20개 아티스트의 일자별 총 순증가 득표 선형 그래프">' +
+      '<defs>' + defs + '</defs>' +
+      '<text x="' + margin.left + '" y="13" fill="#aeb8c9" font-size="10">일일 순증가 득표수</text>' +
+      grid + xLabels + lines +
+      '</svg></div>' +
+      '<div class="net-chart-tooltip" role="status" aria-live="polite"></div>' +
+    '</div><div class="net-chart-legend">' + legend + '</div>';
+
+  const svg = mount.querySelector(".net-chart-svg");
+  const shell = mount.querySelector(".net-chart-shell");
+  const tooltip = mount.querySelector(".net-chart-tooltip");
+  let tooltipTimer = null;
+  let highlightTimer = null;
+
+  const hideTooltip = () => tooltip.classList.remove("is-visible");
+
+  const showTooltip = (seriesIndex, dateIndex, event) => {
+    const item = series[seriesIndex];
+    const value = item && item.values[dateIndex];
+    if (value === null || value === undefined) return;
+
+    const signedValue = (value > 0 ? "+" : "") + number(value);
+    tooltip.textContent = item.artist + " · " + dateLabel(chartDates[dateIndex]) + " · " + signedValue + "표";
+    const shellRect = shell.getBoundingClientRect();
+    const pointerX = event && Number.isFinite(event.clientX)
+      ? event.clientX - shellRect.left + 14
+      : shellRect.width / 2;
+    const pointerY = event && Number.isFinite(event.clientY)
+      ? event.clientY - shellRect.top - 42
+      : 20;
+    const left = Math.max(8, Math.min(pointerX, shellRect.width - 220));
+    const top = Math.max(8, Math.min(pointerY, shellRect.height - 48));
+    tooltip.style.left = left + "px";
+    tooltip.style.top = top + "px";
+    tooltip.classList.add("is-visible");
+  };
+
+  const closestDateIndex = (event, target) => {
+    const explicitIndex = target.getAttribute("data-value-index");
+    if (explicitIndex !== null) return Number(explicitIndex);
+
+    const point = svg.createSVGPoint();
+    point.x = event.clientX;
+    point.y = event.clientY;
+    const matrix = svg.getScreenCTM();
+    if (!matrix) return 0;
+    const local = point.matrixTransform(matrix.inverse());
+    let bestIndex = 0;
+    let bestDistance = Infinity;
+    for (let index = 0; index < chartDates.length; index++) {
+      const distance = Math.abs(x(index) - local.x);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = index;
+      }
+    }
+    return bestIndex;
+  };
+
+  const handleChartPointer = (event) => {
+    const target = event.target.closest("[data-series-index]");
+    if (!target) return;
+    const seriesIndex = Number(target.getAttribute("data-series-index"));
+    if (!Number.isInteger(seriesIndex) || !series[seriesIndex]) return;
+    const dateIndex = closestDateIndex(event, target);
+    showTooltip(seriesIndex, dateIndex, event);
+  };
+
+  svg.addEventListener("pointermove", (event) => {
+    if (event.pointerType === "touch" && event.buttons === 0) return;
+    handleChartPointer(event);
+  });
+  svg.addEventListener("pointerdown", (event) => {
+    if (event.pointerType !== "touch") return;
+    if (tooltipTimer) window.clearTimeout(tooltipTimer);
+    handleChartPointer(event);
+  });
+  svg.addEventListener("pointerup", (event) => {
+    if (event.pointerType !== "touch") return;
+    if (tooltipTimer) window.clearTimeout(tooltipTimer);
+    tooltipTimer = window.setTimeout(hideTooltip, 2600);
+  });
+  svg.addEventListener("pointerleave", (event) => {
+    if (event.pointerType !== "touch") hideTooltip();
+  });
+  svg.addEventListener("focusin", (event) => {
+    const target = event.target.closest(".net-chart-point");
+    if (!target) return;
+    const seriesIndex = Number(target.getAttribute("data-series-index"));
+    const dateIndex = Number(target.getAttribute("data-value-index"));
+    showTooltip(seriesIndex, dateIndex, null);
+  });
+  svg.addEventListener("focusout", hideTooltip);
+
+  const legendButtons = [...mount.querySelectorAll(".net-chart-legend-button")];
+  const clearHighlight = () => {
+    svg.querySelectorAll(".net-chart-series").forEach((element) => {
+      element.classList.remove("is-highlighted", "is-dimmed");
+    });
+    legendButtons.forEach((button) => button.classList.remove("is-selected"));
+  };
+
+  legendButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      if (highlightTimer) window.clearTimeout(highlightTimer);
+      clearHighlight();
+      const selectedIndex = Number(button.getAttribute("data-series-index"));
+      svg.querySelectorAll(".net-chart-series").forEach((element) => {
+        const isSelected = Number(element.getAttribute("data-series-index")) === selectedIndex;
+        element.classList.toggle("is-highlighted", isSelected);
+        element.classList.toggle("is-dimmed", !isSelected);
+      });
+      button.classList.add("is-selected");
+      highlightTimer = window.setTimeout(clearHighlight, 2800);
+    });
+  });
 }
+
 
 function renderHistory(history) {
   // Sections 02 and 03 are based exclusively on official 23:59 KST captures.
