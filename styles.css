@@ -34,3 +34,12 @@ main{max-width:1440px;margin:28px auto;padding:0 24px}.panel{background:rgba(21,
 .net-vote-global{color:#f08caf}
 .net-vote-korea{color:#8be0ad}
 .net-vote-total{color:var(--muted);font-size:10px}
+
+.net-chart{width:100%;min-width:0}
+.net-chart-scroll{width:100%;overflow-x:auto;overflow-y:hidden;border:1px solid var(--line);border-radius:10px;background:#151b26;padding:12px 8px 4px}
+.net-chart-svg{display:block;max-width:none}
+.net-chart-legend{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px 14px;margin-top:16px}
+.net-chart-legend-item{display:flex;align-items:center;gap:8px;min-width:0;color:#dce2ec;font-size:11px;white-space:nowrap}
+.net-chart-swatch{display:inline-block;width:23px;height:4px;flex:0 0 23px;border-radius:99px}
+@media(max-width:900px){.net-chart-legend{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:650px){.net-chart-legend{grid-template-columns:repeat(2,minmax(0,1fr))}.net-chart-scroll{padding-left:4px;padding-right:4px}}
