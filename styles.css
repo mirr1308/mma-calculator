@@ -39,7 +39,21 @@ main{max-width:1440px;margin:28px auto;padding:0 24px}.panel{background:rgba(21,
 .net-chart-scroll{width:100%;overflow-x:auto;overflow-y:hidden;border:1px solid var(--line);border-radius:10px;background:#151b26;padding:12px 8px 4px}
 .net-chart-svg{display:block;max-width:none}
 .net-chart-legend{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px 14px;margin-top:16px}
-.net-chart-legend-item{display:flex;align-items:center;gap:8px;min-width:0;color:#dce2ec;font-size:11px;white-space:nowrap}
+
 .net-chart-swatch{display:inline-block;width:23px;height:4px;flex:0 0 23px;border-radius:99px}
 @media(max-width:900px){.net-chart-legend{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:650px){.net-chart-legend{grid-template-columns:repeat(2,minmax(0,1fr))}.net-chart-scroll{padding-left:4px;padding-right:4px}}
+
+.net-chart-shell{position:relative}
+.net-chart-series{opacity:.88;transition:opacity .2s ease}
+.net-chart-series.is-dimmed{opacity:.12}
+.net-chart-series.is-highlighted{opacity:1;filter:drop-shadow(0 0 5px rgba(255,255,255,.35))}
+.net-chart-series.is-highlighted .net-chart-line{stroke-width:5}
+.net-chart-point{cursor:crosshair;transition:r .15s ease}
+.net-chart-point:hover,.net-chart-point:focus{r:7;outline:none}
+.net-chart-hit{cursor:crosshair}
+.net-chart-tooltip{position:absolute;z-index:5;display:none;max-width:210px;padding:8px 11px;border:1px solid #586579;border-radius:8px;background:#0d1420;color:#f4f6fa;font-size:11px;font-weight:700;white-space:nowrap;pointer-events:none;box-shadow:0 8px 24px #0008}
+.net-chart-tooltip.is-visible{display:block}
+.net-chart-legend-button{display:flex;align-items:center;gap:8px;min-width:0;padding:6px 7px;border:1px solid transparent;border-radius:7px;background:transparent;color:#dce2ec;font:inherit;font-size:11px;text-align:left;cursor:pointer;transition:background .18s ease,border-color .18s ease,opacity .18s ease}
+.net-chart-legend-button:hover,.net-chart-legend-button:focus-visible{border-color:#66758b;background:#ffffff0d;outline:none}
+.net-chart-legend-button.is-selected{border-color:#9aa9bd;background:#ffffff16;color:#fff}
