@@ -28,3 +28,9 @@ main{max-width:1440px;margin:28px auto;padding:0 24px}.panel{background:rgba(21,
 #threshold-table th:first-child,#threshold-table td:first-child{min-width:150px}
 #threshold-table td:not(:first-child){font-family:'DM Mono',monospace;font-weight:600}
 #threshold-table td.difference{font-weight:700}
+
+.net-vote-cell{white-space:normal;min-width:104px}
+.net-vote-cell span{display:block;line-height:1.55;font-family:'DM Mono',monospace;font-variant-numeric:tabular-nums}
+.net-vote-global{color:#f08caf}
+.net-vote-korea{color:#8be0ad}
+.net-vote-total{color:var(--muted);font-size:10px}
