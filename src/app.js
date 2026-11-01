@@ -206,6 +206,13 @@ function renderThresholdHistory(history, currentData) {
     const currentVotes = target
       ? Math.max(0, Number(target.korea || 0) + Number(target.global || 0))
       : null;
+    const totalVotes = rows.reduce(
+      (sum, row) => sum + Math.max(0, Number(row.korea || 0) + Number(row.global || 0)),
+      0
+    );
+    const voteShare = currentVotes !== null && totalVotes > 0
+      ? currentVotes / totalVotes * 100
+      : null;
     const difference = requiredVotes !== null && currentVotes !== null
       ? requiredVotes - currentVotes
       : null;
@@ -218,14 +225,16 @@ function renderThresholdHistory(history, currentData) {
         : (difference > 0 ? "+" : "") + number(difference),
       differenceClass: difference === null
         ? "muted"
-        : difference > 0 ? "up" : difference < 0 ? "down" : "flat"
+        : difference > 0 ? "up" : difference < 0 ? "down" : "flat",
+      voteShareText: voteShare === null ? "—" : voteShare.toFixed(2) + "%"
     };
   });
 
   const metrics = [
     { label: "최소 누적 득표수", value: (item) => item.requiredText },
     { label: "현재 득표수", value: (item) => item.currentText },
-    { label: "차이", value: (item) => item.differenceText }
+    { label: "차이", value: (item) => item.differenceText },
+    { label: "득표 점유율", value: (item) => item.voteShareText }
   ];
 
   const body = metrics.map((metric) =>
@@ -237,7 +246,7 @@ function renderThresholdHistory(history, currentData) {
     "</tr>"
   ).join("");
 
-  // Three metric rows, with one date per column.
+  // Four metric rows, with one date per column.
   table($("threshold-table"), ["항목", ...dates.map(dateLabel)], body);
 }
 
