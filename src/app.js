@@ -128,19 +128,79 @@ function minimumVotesForTopTen(rows) {
   return low;
 }
 
-function renderThresholdHistory(history) {
-  const dates = dailyHistoryDates(history);
+function koreaDateKey(iso) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Seoul",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).formatToParts(new Date(iso)).map((part) => [part.type, part.value])
+  );
+  return parts.year + "-" + parts.month + "-" + parts.day;
+}
+
+function renderThresholdHistory(history, currentData) {
+  const snapshots = new Map();
+  const savedByDate = history?._meta?.thresholdSnapshotsByDate;
+
+  if (savedByDate && typeof savedByDate === "object" && !Array.isArray(savedByDate)) {
+    for (const [date, snapshot] of Object.entries(savedByDate)) {
+      if (
+        /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) &&
+        snapshot && Array.isArray(snapshot.rows) &&
+        snapshot.rows.length > 0
+      ) {
+        snapshots.set(date, snapshot);
+      }
+    }
+  }
+
+  // Backfill the most recent existing records for years created before this map.
+  const meta = history?._meta || {};
+  for (const snapshot of [meta.previousSnapshot, meta.latestSnapshot]) {
+    if (
+      snapshot &&
+      typeof snapshot.date === "string" &&
+      typeof snapshot.collectedAt === "string" &&
+      Array.isArray(snapshot.rows) &&
+      !snapshots.has(snapshot.date)
+    ) {
+      snapshots.set(snapshot.date, snapshot);
+    }
+  }
+
+  // Prefer the current Supabase mma data whenever it is newer than the saved daily sample.
+  if (
+    currentData &&
+    typeof currentData.collectedAt === "string" &&
+    Array.isArray(currentData.rows) &&
+    currentData.rows.length > 0
+  ) {
+    const date = koreaDateKey(currentData.collectedAt);
+    const stored = snapshots.get(date);
+    if (!stored || !stored.collectedAt || Date.parse(currentData.collectedAt) >= Date.parse(stored.collectedAt)) {
+      snapshots.set(date, {
+        date,
+        collectedAt: currentData.collectedAt,
+        source: "live",
+        rows: currentData.rows
+      });
+    }
+  }
+
+  const dates = [...snapshots.keys()].sort();
   if (!dates.length) {
     table(
       $("threshold-table"),
-      ["23:59 기록 대기"],
-      '<tr><td class="muted">첫 공식 일일 스냅샷은 매일 23:59(KST) 자동 수집 후 표시됩니다.</td></tr>'
+      ["현재 수집 데이터 대기"],
+      '<tr><td class="muted">투표 데이터가 수집되면 최소 득표수를 계산합니다.</td></tr>'
     );
     return;
   }
 
   const cells = dates.map((date) => {
-    const rows = dailyRows(history, date);
+    const rows = snapshots.get(date).rows;
     const target = rows.find((row) => row.artist === TARGET_ARTIST_FOR_THRESHOLD);
     const requiredVotes = minimumVotesForTopTen(rows);
     const currentVotes = target
@@ -166,7 +226,7 @@ function renderThresholdHistory(history) {
       '</td>';
   }).join("");
 
-  // Keep one data row only; each date is a column with three values inside its cell.
+  // One date per column, calculated from that date's latest collection.
   table($("threshold-table"), dates.map(dateLabel), "<tr>" + cells + "</tr>");
 }
 
@@ -332,7 +392,7 @@ async function refresh() {
     const [current, history] = await Promise.all([getCurrent(), getHistory()]);
     renderCurrent(current, history);
     renderHistory(history);
-    renderThresholdHistory(history);
+    renderThresholdHistory(history, current);
     if (collected.historySaved) {
       $("data-status").textContent = "저장 완료 · " + current.rowCount + " ARTISTS";
       $("data-status").className = "status ok";
@@ -360,7 +420,7 @@ async function loadDashboard() {
     const [current, history] = await Promise.all([getCurrent(), getHistory()]);
     renderCurrent(current, history);
     renderHistory(history);
-    renderThresholdHistory(history);
+    renderThresholdHistory(history, current);
     $("data-status").textContent = "LIVE · " + current.rowCount + " ARTISTS";
     $("data-status").className = "status ok";
   } catch (error) {
