@@ -210,8 +210,8 @@ function renderThresholdHistory(history, currentData) {
       0,
       ...rows.map((row) => Math.max(0, Number(row.korea || 0) + Number(row.global || 0)))
     );
-    const voteShare = currentVotes !== null && maxVote > 0
-      ? currentVotes / maxVote * 100
+    const voteShare = requiredVotes !== null && maxVote > 0
+      ? requiredVotes / maxVote * 100
       : null;
     const difference = requiredVotes !== null && currentVotes !== null
       ? requiredVotes - currentVotes
@@ -234,7 +234,7 @@ function renderThresholdHistory(history, currentData) {
     { label: "최소 누적 득표수", value: (item) => item.requiredText },
     { label: "현재 득표수", value: (item) => item.currentText },
     { label: "차이", value: (item) => item.differenceText },
-    { label: "득표 점유율", value: (item) => item.voteShareText }
+    { label: "최소 득표 점유율", value: (item) => item.voteShareText }
   ];
 
   const body = metrics.map((metric) =>
