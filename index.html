@@ -62,14 +62,14 @@
     <section class="panel">
       <div class="section-heading">
         <div><span class="section-no">04</span><h2>10위 진입 최소 득표수</h2></div>
-        <p>매일 23:59(KST) 기준 · 10위 도달에 필요한 최소 누적 투표수</p>
+        <p>현재 득표 기준 · 날짜별 최신 수집 데이터로 계산</p>
       </div>
       <div class="table-wrap"><table id="threshold-table"><thead></thead><tbody><tr><td class="muted">공식 일일 기록을 기다리는 중입니다.</td></tr></tbody></table></div>
-      <p class="hint">각 날짜의 최종 스냅샷을 기준으로 계산하며, 현재 확보한 득표수를 포함한 누적 투표수입니다.</p>
+      <p class="hint">각 날짜에 마지막으로 수집된 득표 데이터를 기준으로 계산합니다. 오늘은 Supabase의 최신 득표 데이터가 반영됩니다.</p>
     </section>
 
     <footer>Data: Supabase mma · History: GitHub JSON · Timezone: Asia/Seoul</footer>
   </main>
-  <script type="module" src="./src/app.js?v=20261101-daily-date-filter-fix"></script>
+  <script type="module" src="./src/app.js?v=20261101-current-threshold-basis"></script>
 </body>
 </html>
