@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#10131b">
   <title>MMA 2026 Calculator</title>
-  <link rel="stylesheet" href="./styles.css?v=20261102-net-vote-total-colors">
+  <link rel="stylesheet" href="./styles.css?v=20261102-net-daily-line-chart">
 </head>
 <body>
   <header class="hero">
@@ -60,11 +60,22 @@
 
     <section class="panel">
       <div class="section-heading">
-        <div><span class="section-no">04</span><h2>10위 진입 최소 득표수</h2></div>
+        <div><span class="section-no">04</span><h2>일자별 순 득표 추이 그래프</h2></div>
+        <p>03번의 글로벌·국내 순증가 합계 기준</p>
+      </div>
+      <div id="net-vote-chart" class="net-chart" aria-live="polite">
+        <p class="muted">공식 일일 스냅샷이 누적되면 그래프가 표시됩니다.</p>
+      </div>
+      <p class="hint">각 날짜의 글로벌·국내 순증가 득표수를 합산한 값입니다.</p>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div><span class="section-no">05</span><h2>10위 진입 최소 득표수</h2></div>
         <p>현재 득표 기준 · 날짜별 최신 수집 데이터로 계산</p>
       </div>
       <div class="table-wrap"><table id="threshold-table"><thead></thead><tbody><tr><td class="muted">공식 일일 기록을 기다리는 중입니다.</td></tr></tbody></table></div>
-      <p class="hint">각 날짜에 마지막으로 수집된 득표 데이터를 기준으로 계산합니다. 득표 점유율은 전체 30팀 누적 득표수 대비 비율입니다.</p>
+      <p class="hint">각 날짜에 마지막으로 수집된 득표 데이터를 기준으로 계산합니다. 최소 득표 점유율은 최소 누적 득표수를 Max Vote로 나눈 비율입니다.</p>
     </section>
 
     <footer>Data: Supabase mma · History: GitHub JSON · Timezone: Asia/Seoul</footer>
