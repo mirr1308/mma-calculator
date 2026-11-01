@@ -354,6 +354,153 @@ function renderCurrent(raw, history) {
     : "Chart Score 30개 중 일부 또는 전체가 미설정입니다. config.js에 원본 점수를 입력하면 Total Score 순위와 점수 증감이 자동 계산됩니다.";
 }
 
+const NET_VOTE_CHART_SERIES = [
+  ["BTS", ["#A78BFA"]],
+  ["aespa", ["#B9E7FF", "#DCCBFA"]],
+  ["BIGBANG", ["#F4D35E"]],
+  ["IVE", ["#F48FB1"]],
+  ["SEVENTEEN", ["#F4A6D0", "#A9DDF5"]],
+  ["CORTIS", ["#78C98B"]],
+  ["ILLIT", ["#AAB2BD"]],
+  ["TOMORROW X TOGETHER", ["#42C6C5"]],
+  ["G-DRAGON", ["#F2E6A0"]],
+  ["NCT WISH", ["#B7F34A"]],
+  ["RIIZE", ["#FF963F"]],
+  ["TWICE", ["#F6A8CB", "#FFC19B"]],
+  ["Hearts2Hearts", ["#8ED8F5"]],
+  ["LE SSERAFIM", ["#558BEA"]],
+  ["BOYNEXTDOOR", ["#8BD8F7", "#477FE0"]],
+  ["i-dle", ["#B58BEF"]],
+  ["Stray Kids", ["#E9515F"]],
+  ["IU", ["#A87955"]],
+  ["RESCENE", ["#F1B8D0"]],
+  ["BLACKPINK", ["#17191E"]]
+];
+
+function renderNetVoteChart(history, dates) {
+  const mount = $("net-vote-chart");
+  if (!mount) return;
+
+  const chartDates = dates.slice(1);
+  if (!chartDates.length) {
+    mount.innerHTML = '<p class="muted">비교할 전날 기록이 아직 없습니다. 두 번째 23:59(KST) 스냅샷부터 그래프가 표시됩니다.</p>';
+    return;
+  }
+
+  const rowsByDate = chartDates.map((date) =>
+    new Map(dailyRows(history, date).map((row) => [row.artist, row]))
+  );
+  const previousRowsByDate = chartDates.map((date, index) =>
+    new Map(dailyRows(history, dates[index]).map((row) => [row.artist, row]))
+  );
+
+  const series = NET_VOTE_CHART_SERIES.map(([artist, colors], index) => ({
+    artist,
+    colors,
+    id: "net-vote-gradient-" + index,
+    values: chartDates.map((date, dateIndex) => {
+      const current = rowsByDate[dateIndex].get(artist);
+      const previous = previousRowsByDate[dateIndex].get(artist);
+      if (!current || !previous) return null;
+      const globalDelta = Number(current.global) - Number(previous.global);
+      const koreaDelta = Number(current.korea) - Number(previous.korea);
+      const total = globalDelta + koreaDelta;
+      return Number.isFinite(total) ? total : null;
+    })
+  }));
+
+  const allValues = series.flatMap((item) => item.values.filter((value) => value !== null));
+  if (!allValues.length) {
+    mount.innerHTML = '<p class="muted">표시할 일일 순증가 데이터가 아직 없습니다.</p>';
+    return;
+  }
+
+  const rawMin = Math.min(0, ...allValues);
+  const rawMax = Math.max(0, ...allValues);
+  const span = Math.max(1, rawMax - rawMin);
+  const minValue = rawMin < 0 ? rawMin - span * 0.08 : 0;
+  const maxValue = rawMax > 0 ? rawMax + span * 0.08 : 1;
+
+  const margin = { top: 24, right: 28, bottom: 58, left: 92 };
+  const plotHeight = 330;
+  const plotWidth = Math.max(620, (chartDates.length - 1) * 118);
+  const width = margin.left + plotWidth + margin.right;
+  const height = margin.top + plotHeight + margin.bottom;
+  const x = (index) => margin.left + (chartDates.length === 1 ? plotWidth / 2 : index / (chartDates.length - 1) * plotWidth);
+  const y = (value) => margin.top + (maxValue - value) / (maxValue - minValue) * plotHeight;
+  const ticks = Array.from({ length: 5 }, (_, index) =>
+    minValue + (maxValue - minValue) * index / 4
+  );
+
+  const defs = series
+    .filter((item) => item.colors.length > 1)
+    .map((item) =>
+      '<linearGradient id="' + item.id + '" x1="0%" y1="0%" x2="100%" y2="0%">' +
+      item.colors.map((color, index) =>
+        '<stop offset="' + (index / (item.colors.length - 1) * 100) + '%" stop-color="' + color + '"/>'
+      ).join("") +
+      '</linearGradient>'
+    ).join("");
+
+  const grid = ticks.map((tick) => {
+    const py = y(tick);
+    return '<g>' +
+      '<line x1="' + margin.left + '" y1="' + py + '" x2="' + (width - margin.right) + '" y2="' + py + '" stroke="#30394a" stroke-width="1"/>' +
+      '<text x="' + (margin.left - 12) + '" y="' + (py + 4) + '" text-anchor="end" fill="#aeb8c9" font-size="11">' + number(Math.round(tick)) + '</text>' +
+      '</g>';
+  }).join("");
+
+  const xLabels = chartDates.map((date, index) =>
+    '<text x="' + x(index) + '" y="' + (height - 22) + '" text-anchor="middle" fill="#aeb8c9" font-size="11">' + dateLabel(date) + '</text>'
+  ).join("");
+
+  const lines = series.map((item) => {
+    const segments = [];
+    let currentSegment = [];
+    item.values.forEach((value, index) => {
+      if (value === null) {
+        if (currentSegment.length) segments.push(currentSegment);
+        currentSegment = [];
+        return;
+      }
+      currentSegment.push({ x: x(index), y: y(value) });
+    });
+    if (currentSegment.length) segments.push(currentSegment);
+
+    const path = segments.map((segment) =>
+      segment.map((point, index) => (index === 0 ? "M " : "L ") + point.x.toFixed(1) + " " + point.y.toFixed(1)).join(" ")
+    ).join(" ");
+    const stroke = item.colors.length > 1 ? "url(#" + item.id + ")" : item.colors[0];
+    const halo = item.artist === "BLACKPINK"
+      ? segments.map((segment) =>
+          '<path d="' + segment.map((point, index) => (index === 0 ? "M " : "L ") + point.x.toFixed(1) + " " + point.y.toFixed(1)).join(" ") + '" fill="none" stroke="#d5d9e0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>'
+        ).join("")
+      : "";
+    const points = item.values.map((value, index) => value === null ? "" :
+      '<circle cx="' + x(index) + '" cy="' + y(value) + '" r="3.4" fill="' + (item.colors.length > 1 ? item.colors[0] : item.colors[0]) + '" stroke="#111722" stroke-width="1.2"/>'
+    ).join("");
+
+    return '<g>' + halo +
+      '<path d="' + path + '" fill="none" stroke="' + stroke + '" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>' +
+      points + '</g>';
+  }).join("");
+
+  const legend = series.map((item) => {
+    const swatch = item.colors.length > 1
+      ? "linear-gradient(90deg," + item.colors.join(",") + ")"
+      : item.colors[0];
+    const border = item.artist === "BLACKPINK" ? "border:1px solid #9ba3b2;" : "";
+    return '<div class="net-chart-legend-item"><span class="net-chart-swatch" style="background:' + swatch + ';' + border + '"></span><span>' + item.artist + '</span></div>';
+  }).join("");
+
+  mount.innerHTML =
+    '<div class="net-chart-scroll"><svg class="net-chart-svg" viewBox="0 0 ' + width + ' ' + height + '" width="' + width + '" height="' + height + '" role="img" aria-label="20개 아티스트의 일자별 총 순증가 득표 선형 그래프">' +
+    '<defs>' + defs + '</defs>' +
+    '<text x="' + margin.left + '" y="13" fill="#aeb8c9" font-size="10">일일 순증가 득표수</text>' +
+    grid + xLabels + lines +
+    '</svg></div><div class="net-chart-legend">' + legend + '</div>';
+}
+
 function renderHistory(history) {
   // Sections 02 and 03 are based exclusively on official 23:59 KST captures.
   const dates = dailyHistoryDates(history);
@@ -361,6 +508,7 @@ function renderHistory(history) {
     const waiting = '<tr><td class="muted">아직 23:59(KST) 일일 스냅샷이 없습니다. 오늘 기록은 23:59 자동 수집 후 표시됩니다.</td></tr>';
     table($("rank-table"), ["기록 상태"], waiting);
     table($("votes-table"), ["기록 상태"], waiting);
+    renderNetVoteChart(history, []);
     return;
   }
 
@@ -401,6 +549,7 @@ function renderHistory(history) {
     return "<tr><td>" + artist + "</td>" + cells + "</tr>";
   }).join("");
   table($("votes-table"), ["아티스트", ...dates.map(dateLabel)], voteBody);
+  renderNetVoteChart(history, dates);
 }
 
 async function refresh() {
