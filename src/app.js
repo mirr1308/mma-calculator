@@ -199,7 +199,7 @@ function renderThresholdHistory(history, currentData) {
     return;
   }
 
-  const cells = dates.map((date) => {
+  const valuesByDate = dates.map((date) => {
     const rows = snapshots.get(date).rows;
     const target = rows.find((row) => row.artist === TARGET_ARTIST_FOR_THRESHOLD);
     const requiredVotes = minimumVotesForTopTen(rows);
@@ -210,24 +210,35 @@ function renderThresholdHistory(history, currentData) {
       ? requiredVotes - currentVotes
       : null;
 
-    const requiredText = requiredVotes === null ? "—" : number(requiredVotes);
-    const currentText = currentVotes === null ? "—" : number(currentVotes);
-    const differenceText = difference === null
-      ? "—"
-      : (difference > 0 ? "+" : "") + number(difference);
-    const differenceClass = difference === null
-      ? "muted"
-      : difference > 0 ? "up" : difference < 0 ? "down" : "flat";
+    return {
+      requiredText: requiredVotes === null ? "—" : number(requiredVotes),
+      currentText: currentVotes === null ? "—" : number(currentVotes),
+      differenceText: difference === null
+        ? "—"
+        : (difference > 0 ? "+" : "") + number(difference),
+      differenceClass: difference === null
+        ? "muted"
+        : difference > 0 ? "up" : difference < 0 ? "down" : "flat"
+    };
+  });
 
-    return '<td class="threshold-cell">' +
-      '<div><span>최소 누적 득표수</span><strong>' + requiredText + '</strong></div>' +
-      '<div><span>현재 득표수</span><strong>' + currentText + '</strong></div>' +
-      '<div><span>차이</span><strong class="' + differenceClass + '">' + differenceText + '</strong></div>' +
-      '</td>';
-  }).join("");
+  const metrics = [
+    { label: "최소 누적 득표수", value: (item) => item.requiredText },
+    { label: "현재 득표수", value: (item) => item.currentText },
+    { label: "차이", value: (item) => item.differenceText }
+  ];
 
-  // One date per column, calculated from that date's latest collection.
-  table($("threshold-table"), dates.map(dateLabel), "<tr>" + cells + "</tr>");
+  const body = metrics.map((metric) =>
+    "<tr><td>" + metric.label + "</td>" +
+    valuesByDate.map((item) => {
+      const className = metric.label === "차이" ? item.differenceClass : "";
+      return '<td class="' + className + '">' + metric.value(item) + "</td>";
+    }).join("") +
+    "</tr>"
+  ).join("");
+
+  // Three metric rows, with one date per column.
+  table($("threshold-table"), ["항목", ...dates.map(dateLabel)], body);
 }
 
 
