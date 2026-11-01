@@ -389,10 +389,14 @@ function renderHistory(history) {
       const now = dailyRows(history, date).find(r => r.artist === artist);
       const before = dailyRows(history, dates[index-1]).find(r => r.artist === artist);
       if (!now || !before) return '<td class="muted">—</td>';
-      const g = now.global - before.global;
-      const k = now.korea - before.korea;
-      return '<td><span class="' + (g >= 0 ? "up" : "down") + '">' + (g > 0 ? "+" : "") + number(g) +
-        '</span><br><span class="muted">' + (k > 0 ? "+" : "") + number(k) + '</span></td>';
+      const g = Number(now.global) - Number(before.global);
+      const k = Number(now.korea) - Number(before.korea);
+      const total = g + k;
+      return '<td class="net-vote-cell">' +
+        '<span class="net-vote-global">' + (g > 0 ? "+" : "") + number(g) + '</span>' +
+        '<span class="net-vote-korea">' + (k > 0 ? "+" : "") + number(k) + '</span>' +
+        '<span class="net-vote-total">' + (total > 0 ? "+" : "") + number(total) + '</span>' +
+        '</td>';
     }).join("");
     return "<tr><td>" + artist + "</td>" + cells + "</tr>";
   }).join("");
