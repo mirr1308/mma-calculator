@@ -206,12 +206,12 @@ function renderThresholdHistory(history, currentData) {
     const currentVotes = target
       ? Math.max(0, Number(target.korea || 0) + Number(target.global || 0))
       : null;
-    const totalVotes = rows.reduce(
-      (sum, row) => sum + Math.max(0, Number(row.korea || 0) + Number(row.global || 0)),
-      0
+    const maxVote = Math.max(
+      0,
+      ...rows.map((row) => Math.max(0, Number(row.korea || 0) + Number(row.global || 0)))
     );
-    const voteShare = currentVotes !== null && totalVotes > 0
-      ? currentVotes / totalVotes * 100
+    const voteShare = currentVotes !== null && maxVote > 0
+      ? currentVotes / maxVote * 100
       : null;
     const difference = requiredVotes !== null && currentVotes !== null
       ? requiredVotes - currentVotes
