@@ -374,7 +374,7 @@ const NET_VOTE_CHART_SERIES = [
   ["Stray Kids", ["#E9515F"]],
   ["IU", ["#A87955"]],
   ["RESCENE", ["#F1B8D0"]],
-  ["BLACKPINK", ["#17191E"]]
+  ["BLACKPINK", ["#17191E", "#F1B8D0"]]
 ];
 
 function renderNetVoteChart(history, dates) {
