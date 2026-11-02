@@ -45,7 +45,7 @@
     <section class="panel">
       <div class="section-heading">
         <div><span class="section-no">02</span><h2>일자별 순위 기록</h2></div>
-        <p>매일 23:59(KST) 자동 수집 기준</p>
+        <p>매일 23:59(KST) 기준</p>
       </div>
       <div class="table-wrap"><table id="rank-table"><thead></thead><tbody><tr><td>저장된 History가 없습니다.</td></tr></tbody></table></div>
     </section>
@@ -53,7 +53,7 @@
     <section class="panel">
       <div class="section-heading">
         <div><span class="section-no">03</span><h2>일자별 순 득표 추이</h2></div>
-        <p>매일 23:59(KST) 누적 득표</p>
+        <p>매일 23:59(KST) 기준</p>
       </div>
       <div class="table-wrap"><table id="votes-table"><thead></thead><tbody><tr><td>저장된 History가 없습니다.</td></tr></tbody></table></div>
     </section>
@@ -61,21 +61,20 @@
     <section class="panel">
       <div class="section-heading">
         <div><span class="section-no">04</span><h2>일자별 총 순증가 득표 추이</h2></div>
-        <p>03번의 글로벌·국내 순증가 합계 기준</p>
+        <p>매일 23:59(KST) 기준</p>
       </div>
       <div id="net-vote-chart" class="net-chart" aria-live="polite">
         <p class="muted">공식 일일 스냅샷이 누적되면 그래프가 표시됩니다.</p>
       </div>
-      <p class="hint">각 날짜의 글로벌·국내 순증가 득표수를 합산한 값입니다.</p>
     </section>
 
     <section class="panel">
       <div class="section-heading">
         <div><span class="section-no">05</span><h2>10위 진입 최소 득표수</h2></div>
-        <p>현재 득표 기준 · 날짜별 최신 수집 데이터로 계산</p>
+        <p>현재 득표 및 매일 23:59(KST) 기준</p>
       </div>
       <div class="table-wrap"><table id="threshold-table"><thead></thead><tbody><tr><td class="muted">공식 일일 기록을 기다리는 중입니다.</td></tr></tbody></table></div>
-      <p class="hint">각 날짜에 마지막으로 수집된 득표 데이터를 기준으로 계산합니다. 최소 득표 점유율은 최소 누적 득표수를 Max Vote로 나눈 비율입니다.</p>
+      <p class="hint">최소 득표 점유율은 최소 누적 득표수를 Max Vote로 나눈 비율입니다.</p>
     </section>
 
     <footer>Data: Supabase mma · History: GitHub JSON · Timezone: Asia/Seoul</footer>
