@@ -463,13 +463,170 @@
       "korea",
       "global"
     ],
-    "updatedAt": "2026-11-03T02:31:10.373Z",
+    "updatedAt": "2026-11-03T05:44:48.304Z",
     "lastCollectedAtByDate": {
       "2026-10-31": "2026-10-31T14:59:01.715Z",
       "2026-11-01": "2026-11-01T14:59:01.401Z",
       "2026-11-02": "2026-11-02T14:59:01.715Z"
     },
     "latestSnapshot": {
+      "date": "2026-11-03",
+      "collectedAt": "2026-11-03T05:44:48.304Z",
+      "rows": [
+        {
+          "artist": "aespa",
+          "korea": 22635,
+          "global": 11292
+        },
+        {
+          "artist": "BABYMONSTER",
+          "korea": 1371,
+          "global": 13077
+        },
+        {
+          "artist": "BIGBANG",
+          "korea": 5155,
+          "global": 11250
+        },
+        {
+          "artist": "BLACKPINK",
+          "korea": 1319,
+          "global": 2313
+        },
+        {
+          "artist": "BOYNEXTDOOR",
+          "korea": 47379,
+          "global": 7101
+        },
+        {
+          "artist": "BTS",
+          "korea": 106147,
+          "global": 253453
+        },
+        {
+          "artist": "CORTIS",
+          "korea": 38035,
+          "global": 105494
+        },
+        {
+          "artist": "ENHYPEN",
+          "korea": 9225,
+          "global": 36755
+        },
+        {
+          "artist": "EXO",
+          "korea": 16503,
+          "global": 9941
+        },
+        {
+          "artist": "G-DRAGON",
+          "korea": 191011,
+          "global": 20035
+        },
+        {
+          "artist": "Hearts2Hearts",
+          "korea": 32114,
+          "global": 189558
+        },
+        {
+          "artist": "i-dle",
+          "korea": 1733,
+          "global": 2004
+        },
+        {
+          "artist": "ILLIT",
+          "korea": 7540,
+          "global": 5542
+        },
+        {
+          "artist": "IU",
+          "korea": 17880,
+          "global": 13386
+        },
+        {
+          "artist": "IVE",
+          "korea": 33640,
+          "global": 7682
+        },
+        {
+          "artist": "JENNIE",
+          "korea": 1615,
+          "global": 772
+        },
+        {
+          "artist": "LE SSERAFIM",
+          "korea": 2175,
+          "global": 572
+        },
+        {
+          "artist": "NCT DREAM",
+          "korea": 37915,
+          "global": 51936
+        },
+        {
+          "artist": "NCT WISH",
+          "korea": 136363,
+          "global": 19905
+        },
+        {
+          "artist": "NewJeans",
+          "korea": 5412,
+          "global": 5084
+        },
+        {
+          "artist": "NMIXX",
+          "korea": 7650,
+          "global": 317
+        },
+        {
+          "artist": "RESCENE",
+          "korea": 357511,
+          "global": 3374
+        },
+        {
+          "artist": "RIIZE",
+          "korea": 97945,
+          "global": 25722
+        },
+        {
+          "artist": "ROSÉ",
+          "korea": 1331,
+          "global": 554
+        },
+        {
+          "artist": "SEVENTEEN",
+          "korea": 19858,
+          "global": 7841
+        },
+        {
+          "artist": "Stray Kids",
+          "korea": 3704,
+          "global": 6794
+        },
+        {
+          "artist": "TOMORROW X TOGETHER",
+          "korea": 14680,
+          "global": 14780
+        },
+        {
+          "artist": "TWICE",
+          "korea": 1350,
+          "global": 1234
+        },
+        {
+          "artist": "TWS",
+          "korea": 50667,
+          "global": 4621
+        },
+        {
+          "artist": "YENA",
+          "korea": 2426,
+          "global": 360
+        }
+      ],
+      "source": "manual"
+    },
+    "previousSnapshot": {
       "date": "2026-11-03",
       "collectedAt": "2026-11-03T02:31:10.373Z",
       "rows": [
@@ -622,163 +779,6 @@
           "artist": "YENA",
           "korea": 2385,
           "global": 347
-        }
-      ],
-      "source": "manual"
-    },
-    "previousSnapshot": {
-      "date": "2026-11-03",
-      "collectedAt": "2026-11-03T00:47:07.815Z",
-      "rows": [
-        {
-          "artist": "aespa",
-          "korea": 21951,
-          "global": 10802
-        },
-        {
-          "artist": "BABYMONSTER",
-          "korea": 1334,
-          "global": 12331
-        },
-        {
-          "artist": "BIGBANG",
-          "korea": 5030,
-          "global": 10754
-        },
-        {
-          "artist": "BLACKPINK",
-          "korea": 1298,
-          "global": 2218
-        },
-        {
-          "artist": "BOYNEXTDOOR",
-          "korea": 46284,
-          "global": 6748
-        },
-        {
-          "artist": "BTS",
-          "korea": 101968,
-          "global": 242930
-        },
-        {
-          "artist": "CORTIS",
-          "korea": 36750,
-          "global": 100233
-        },
-        {
-          "artist": "ENHYPEN",
-          "korea": 9046,
-          "global": 35466
-        },
-        {
-          "artist": "EXO",
-          "korea": 15941,
-          "global": 9391
-        },
-        {
-          "artist": "G-DRAGON",
-          "korea": 184917,
-          "global": 18420
-        },
-        {
-          "artist": "Hearts2Hearts",
-          "korea": 31096,
-          "global": 176086
-        },
-        {
-          "artist": "i-dle",
-          "korea": 1696,
-          "global": 1934
-        },
-        {
-          "artist": "ILLIT",
-          "korea": 7249,
-          "global": 5290
-        },
-        {
-          "artist": "IU",
-          "korea": 17350,
-          "global": 12675
-        },
-        {
-          "artist": "IVE",
-          "korea": 32608,
-          "global": 7342
-        },
-        {
-          "artist": "JENNIE",
-          "korea": 1555,
-          "global": 749
-        },
-        {
-          "artist": "LE SSERAFIM",
-          "korea": 2110,
-          "global": 561
-        },
-        {
-          "artist": "NCT DREAM",
-          "korea": 36469,
-          "global": 49368
-        },
-        {
-          "artist": "NCT WISH",
-          "korea": 131409,
-          "global": 18754
-        },
-        {
-          "artist": "NewJeans",
-          "korea": 5311,
-          "global": 5032
-        },
-        {
-          "artist": "NMIXX",
-          "korea": 7433,
-          "global": 311
-        },
-        {
-          "artist": "RESCENE",
-          "korea": 345089,
-          "global": 3159
-        },
-        {
-          "artist": "RIIZE",
-          "korea": 93939,
-          "global": 24570
-        },
-        {
-          "artist": "ROSÉ",
-          "korea": 1295,
-          "global": 531
-        },
-        {
-          "artist": "SEVENTEEN",
-          "korea": 19231,
-          "global": 7514
-        },
-        {
-          "artist": "Stray Kids",
-          "korea": 3602,
-          "global": 6373
-        },
-        {
-          "artist": "TOMORROW X TOGETHER",
-          "korea": 14385,
-          "global": 14166
-        },
-        {
-          "artist": "TWICE",
-          "korea": 1320,
-          "global": 1201
-        },
-        {
-          "artist": "TWS",
-          "korea": 48488,
-          "global": 4329
-        },
-        {
-          "artist": "YENA",
-          "korea": 2343,
-          "global": 333
         }
       ],
       "source": "manual"
@@ -1262,158 +1262,158 @@
       },
       "2026-11-03": {
         "date": "2026-11-03",
-        "collectedAt": "2026-11-03T02:31:10.373Z",
+        "collectedAt": "2026-11-03T05:44:48.304Z",
         "source": "manual",
         "rows": [
           {
             "artist": "aespa",
-            "korea": 22194,
-            "global": 10980
+            "korea": 22635,
+            "global": 11292
           },
           {
             "artist": "BABYMONSTER",
-            "korea": 1346,
-            "global": 12667
+            "korea": 1371,
+            "global": 13077
           },
           {
             "artist": "BIGBANG",
-            "korea": 5071,
-            "global": 10974
+            "korea": 5155,
+            "global": 11250
           },
           {
             "artist": "BLACKPINK",
-            "korea": 1313,
-            "global": 2252
+            "korea": 1319,
+            "global": 2313
           },
           {
             "artist": "BOYNEXTDOOR",
-            "korea": 46641,
-            "global": 6877
+            "korea": 47379,
+            "global": 7101
           },
           {
             "artist": "BTS",
-            "korea": 103546,
-            "global": 246925
+            "korea": 106147,
+            "global": 253453
           },
           {
             "artist": "CORTIS",
-            "korea": 37235,
-            "global": 101902
+            "korea": 38035,
+            "global": 105494
           },
           {
             "artist": "ENHYPEN",
-            "korea": 9111,
-            "global": 35992
+            "korea": 9225,
+            "global": 36755
           },
           {
             "artist": "EXO",
-            "korea": 16164,
-            "global": 9625
+            "korea": 16503,
+            "global": 9941
           },
           {
             "artist": "G-DRAGON",
-            "korea": 187467,
-            "global": 19050
+            "korea": 191011,
+            "global": 20035
           },
           {
             "artist": "Hearts2Hearts",
-            "korea": 31490,
-            "global": 177994
+            "korea": 32114,
+            "global": 189558
           },
           {
             "artist": "i-dle",
-            "korea": 1710,
-            "global": 1957
+            "korea": 1733,
+            "global": 2004
           },
           {
             "artist": "ILLIT",
-            "korea": 7373,
-            "global": 5414
+            "korea": 7540,
+            "global": 5542
           },
           {
             "artist": "IU",
-            "korea": 17518,
-            "global": 12973
+            "korea": 17880,
+            "global": 13386
           },
           {
             "artist": "IVE",
-            "korea": 33033,
-            "global": 7489
+            "korea": 33640,
+            "global": 7682
           },
           {
             "artist": "JENNIE",
-            "korea": 1574,
-            "global": 755
+            "korea": 1615,
+            "global": 772
           },
           {
             "artist": "LE SSERAFIM",
-            "korea": 2143,
-            "global": 565
+            "korea": 2175,
+            "global": 572
           },
           {
             "artist": "NCT DREAM",
-            "korea": 36995,
-            "global": 50431
+            "korea": 37915,
+            "global": 51936
           },
           {
             "artist": "NCT WISH",
-            "korea": 133354,
-            "global": 19273
+            "korea": 136363,
+            "global": 19905
           },
           {
             "artist": "NewJeans",
-            "korea": 5346,
-            "global": 5053
+            "korea": 5412,
+            "global": 5084
           },
           {
             "artist": "NMIXX",
-            "korea": 7491,
-            "global": 314
+            "korea": 7650,
+            "global": 317
           },
           {
             "artist": "RESCENE",
-            "korea": 349875,
-            "global": 3259
+            "korea": 357511,
+            "global": 3374
           },
           {
             "artist": "RIIZE",
-            "korea": 95493,
-            "global": 25031
+            "korea": 97945,
+            "global": 25722
           },
           {
             "artist": "ROSÉ",
-            "korea": 1311,
-            "global": 537
+            "korea": 1331,
+            "global": 554
           },
           {
             "artist": "SEVENTEEN",
-            "korea": 19503,
-            "global": 7667
+            "korea": 19858,
+            "global": 7841
           },
           {
             "artist": "Stray Kids",
-            "korea": 3628,
-            "global": 6551
+            "korea": 3704,
+            "global": 6794
           },
           {
             "artist": "TOMORROW X TOGETHER",
-            "korea": 14518,
-            "global": 14435
+            "korea": 14680,
+            "global": 14780
           },
           {
             "artist": "TWICE",
-            "korea": 1332,
-            "global": 1216
+            "korea": 1350,
+            "global": 1234
           },
           {
             "artist": "TWS",
-            "korea": 49201,
-            "global": 4452
+            "korea": 50667,
+            "global": 4621
           },
           {
             "artist": "YENA",
-            "korea": 2385,
-            "global": 347
+            "korea": 2426,
+            "global": 360
           }
         ]
       }
