@@ -377,21 +377,29 @@ const NET_VOTE_CHART_SERIES = [
   ["BLACKPINK", ["#17191E", "#F1B8D0"]]
 ];
 
-function renderNetVoteChart(history, dates) {
+function renderNetVoteChart(history, dates, currentData, includeCurrent) {
   const mount = $("net-vote-chart");
   if (!mount) return;
 
   const chartDates = dates.slice(1);
+  if (includeCurrent) chartDates.push("__current__");
+  const chartDateLabel = (date) => date === "__current__" ? "현재" : dateLabel(date);
+  const currentRows = new Map((currentData?.rows || []).map((row) => [row.artist, row]));
+  const latestOfficialRows = new Map(dailyRows(history, dates.at(-1)).map((row) => [row.artist, row]));
   if (!chartDates.length) {
     mount.innerHTML = '<p class="muted">비교할 전날 기록이 아직 없습니다. 두 번째 23:59(KST) 스냅샷부터 그래프가 표시됩니다.</p>';
     return;
   }
 
   const rowsByDate = chartDates.map((date) =>
-    new Map(dailyRows(history, date).map((row) => [row.artist, row]))
+    date === "__current__"
+      ? currentRows
+      : new Map(dailyRows(history, date).map((row) => [row.artist, row]))
   );
   const previousRowsByDate = chartDates.map((date, index) =>
-    new Map(dailyRows(history, dates[index]).map((row) => [row.artist, row]))
+    date === "__current__"
+      ? latestOfficialRows
+      : new Map(dailyRows(history, dates[index]).map((row) => [row.artist, row]))
   );
 
   const series = NET_VOTE_CHART_SERIES.map(([artist, colors], index) => ({
@@ -477,7 +485,7 @@ function renderNetVoteChart(history, dates) {
         ).join("")
       : "";
     const points = item.values.map((value, index) => value === null ? "" :
-      '<circle class="net-chart-point" data-series-index="' + seriesIndex + '" data-value-index="' + index + '" tabindex="0" role="button" aria-label="' + item.artist + ' ' + dateLabel(chartDates[index]) + ' ' + number(value) + '표" cx="' + x(index) + '" cy="' + y(value) + '" r="4.2" fill="' + item.colors[0] + '" stroke="#111722" stroke-width="1.2"/>'
+      '<circle class="net-chart-point" data-series-index="' + seriesIndex + '" data-value-index="' + index + '" tabindex="0" role="button" aria-label="' + item.artist + ' ' + chartDateLabel(chartDates[index]) + ' ' + number(value) + '표" cx="' + x(index) + '" cy="' + y(value) + '" r="4.2" fill="' + item.colors[0] + '" stroke="#111722" stroke-width="1.2"/>'
     ).join("");
 
     const visibleLine = path
@@ -525,7 +533,7 @@ function renderNetVoteChart(history, dates) {
     if (value === null || value === undefined) return;
 
     const signedValue = (value > 0 ? "+" : "") + number(value);
-    tooltip.textContent = item.artist + " · " + dateLabel(chartDates[dateIndex]) + " · " + signedValue + "표";
+    tooltip.textContent = item.artist + " · " + chartDateLabel(chartDates[dateIndex]) + " · " + signedValue + "표";
     const shellRect = shell.getBoundingClientRect();
     const pointerX = event && Number.isFinite(event.clientX)
       ? event.clientX - shellRect.left + 14
@@ -622,25 +630,35 @@ function renderNetVoteChart(history, dates) {
 }
 
 
-function renderHistory(history) {
-  // Sections 02 and 03 are based exclusively on official 23:59 KST captures.
+function renderHistory(history, currentData) {
+  // Sections 02 and 03 retain official 23:59 KST columns and append a live column.
   const dates = dailyHistoryDates(history);
   if (!dates.length) {
     const waiting = '<tr><td class="muted">아직 23:59(KST) 일일 스냅샷이 없습니다. 오늘 기록은 23:59 자동 수집 후 표시됩니다.</td></tr>';
     table($("rank-table"), ["기록 상태"], waiting);
     table($("votes-table"), ["기록 상태"], waiting);
-    renderNetVoteChart(history, []);
+    renderNetVoteChart(history, [], currentData, false);
     return;
   }
 
-  // Sections 02 and 03 show only the 20 artists with the highest original Chart Score.
-  // Rank positions themselves are still calculated against the complete 30-artist field.
+  const latestDate = dates.at(-1);
+  const latestDailyAt = history?._meta?.lastCollectedAtByDate?.[latestDate] || null;
+  const includeCurrent = Boolean(
+    currentData &&
+    Array.isArray(currentData.rows) &&
+    currentData.rows.length > 0 &&
+    currentData.collectedAt &&
+    (!latestDailyAt || Date.parse(currentData.collectedAt) > Date.parse(latestDailyAt))
+  );
+
+  // Keep the original 20-artist display scope; calculate ranks against all 30 artists.
   const artists = Object.entries(CHART_SCORES)
     .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, 20)
     .map(([artist]) => artist);
   const rankByDate = new Map();
   for (const date of dates) rankByDate.set(date, rankRows(calculate(dailyRows(history, date))));
+  const currentRanked = includeCurrent ? rankRows(calculate(currentData.rows)) : null;
 
   const rankBody = artists.map((artist) => {
     const cells = dates.map((date) => {
@@ -648,10 +666,16 @@ function renderHistory(history) {
       const rank = ranked ? ranked.findIndex(r => r.artist === artist) + 1 : 0;
       return "<td>" + (rank > 0 ? '<span class="rank">' + rank + '</span>' : '<span class="muted">—</span>') + "</td>";
     }).join("");
-    return "<tr><td>" + artist + "</td>" + cells + "</tr>";
+    const currentRank = currentRanked ? currentRanked.findIndex(r => r.artist === artist) + 1 : 0;
+    const currentCell = includeCurrent
+      ? "<td>" + (currentRank > 0 ? '<span class="rank">' + currentRank + '</span>' : '<span class="muted">—</span>') + "</td>"
+      : "";
+    return "<tr><td>" + artist + "</td>" + cells + currentCell + "</tr>";
   }).join("");
-  table($("rank-table"), ["아티스트", ...dates.map(dateLabel)], rankBody);
+  table($("rank-table"), ["아티스트", ...dates.map(dateLabel), ...(includeCurrent ? ["현재"] : [])], rankBody);
 
+  const latestOfficialByName = new Map(dailyRows(history, latestDate).map((row) => [row.artist, row]));
+  const currentByName = new Map((currentData?.rows || []).map((row) => [row.artist, row]));
   const voteBody = artists.map((artist) => {
     const cells = dates.map((date, index) => {
       if (index === 0) return '<td class="muted">—</td>';
@@ -667,10 +691,27 @@ function renderHistory(history) {
         '<span class="net-vote-total">' + (total > 0 ? "+" : "") + number(total) + '</span>' +
         '</td>';
     }).join("");
-    return "<tr><td>" + artist + "</td>" + cells + "</tr>";
+    let currentCell = "";
+    if (includeCurrent) {
+      const now = currentByName.get(artist);
+      const before = latestOfficialByName.get(artist);
+      if (now && before) {
+        const g = Number(now.global) - Number(before.global);
+        const k = Number(now.korea) - Number(before.korea);
+        const total = g + k;
+        currentCell = '<td class="net-vote-cell">' +
+          '<span class="net-vote-global">' + (g > 0 ? "+" : "") + number(g) + '</span>' +
+          '<span class="net-vote-korea">' + (k > 0 ? "+" : "") + number(k) + '</span>' +
+          '<span class="net-vote-total">' + (total > 0 ? "+" : "") + number(total) + '</span>' +
+          '</td>';
+      } else {
+        currentCell = '<td class="muted">—</td>';
+      }
+    }
+    return "<tr><td>" + artist + "</td>" + cells + currentCell + "</tr>";
   }).join("");
-  table($("votes-table"), ["아티스트", ...dates.map(dateLabel)], voteBody);
-  renderNetVoteChart(history, dates);
+  table($("votes-table"), ["아티스트", ...dates.map(dateLabel), ...(includeCurrent ? ["현재"] : [])], voteBody);
+  renderNetVoteChart(history, dates, currentData, includeCurrent);
 }
 
 async function refresh() {
@@ -685,7 +726,7 @@ async function refresh() {
     $("data-status").textContent = "Supabase 저장 완료 · History 확인 중";
     const [current, history] = await Promise.all([getCurrent(), getHistory()]);
     renderCurrent(current, history);
-    renderHistory(history);
+    renderHistory(history, current);
     renderThresholdHistory(history, current);
     if (collected.historySaved) {
       $("data-status").textContent = "저장 완료 · " + current.rowCount + " ARTISTS";
@@ -713,7 +754,7 @@ async function loadDashboard() {
   try {
     const [current, history] = await Promise.all([getCurrent(), getHistory()]);
     renderCurrent(current, history);
-    renderHistory(history);
+    renderHistory(history, current);
     renderThresholdHistory(history, current);
     $("data-status").textContent = "LIVE · " + current.rowCount + " ARTISTS";
     $("data-status").className = "status ok";
