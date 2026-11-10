@@ -678,12 +678,12 @@ function renderHistory(history, currentData) {
       const previousDateValue = new Date(date + "T00:00:00Z");
       previousDateValue.setUTCDate(previousDateValue.getUTCDate() - 1);
       const previousDate = previousDateValue.toISOString().slice(0, 10);
-      const currentScore = scoresByDate.get(date)?.get(artist);
+      const scoreForDate = scoresByDate.get(date)?.get(artist);
       const previousScore = scoresByDate.get(previousDate)?.get(artist);
-      if (!Number.isFinite(currentScore) || !Number.isFinite(previousScore)) {
+      if (!Number.isFinite(scoreForDate) || !Number.isFinite(previousScore)) {
         return '<td class="muted">—</td>';
       }
-      const delta = round2(currentScore - previousScore);
+      const delta = round2(scoreForDate - previousScore);
       const changeClass = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
       const value = (delta > 0 ? "+" : "") + delta.toFixed(2);
       return '<td class="score-delta-cell"><span class="' + changeClass + '">' + value + '</span></td>';
