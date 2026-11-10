@@ -374,7 +374,7 @@ const NET_VOTE_CHART_SERIES = [
   ["Stray Kids", ["#E9515F"]],
   ["IU", ["#A87955"]],
   ["RESCENE", ["#F1B8D0"]],
-  ["BLACKPINK", ["#17191E", "#F1B8D0"]]
+  ["ENHYPEN", ["#6B7280"]]
 ];
 
 function renderNetVoteChart(history, dates, currentData, includeCurrent) {
@@ -479,11 +479,6 @@ function renderNetVoteChart(history, dates, currentData, includeCurrent) {
       segment.map((point, index) => (index === 0 ? "M " : "L ") + point.x.toFixed(1) + " " + point.y.toFixed(1)).join(" ")
     ).join(" ");
     const stroke = item.colors.length > 1 ? "url(#" + item.id + ")" : item.colors[0];
-    const halo = item.artist === "BLACKPINK"
-      ? segments.map((segment) =>
-          '<path d="' + segment.map((point, index) => (index === 0 ? "M " : "L ") + point.x.toFixed(1) + " " + point.y.toFixed(1)).join(" ") + '" fill="none" stroke="#d5d9e0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>'
-        ).join("")
-      : "";
     const points = item.values.map((value, index) => value === null ? "" :
       '<circle class="net-chart-point" data-series-index="' + seriesIndex + '" data-value-index="' + index + '" tabindex="0" role="button" aria-label="' + item.artist + ' ' + chartDateLabel(chartDates[index]) + ' ' + number(value) + '표" cx="' + x(index) + '" cy="' + y(value) + '" r="4.2" fill="' + item.colors[0] + '" stroke="#111722" stroke-width="1.2"/>'
     ).join("");
@@ -496,16 +491,15 @@ function renderNetVoteChart(history, dates, currentData, includeCurrent) {
       : "";
 
     return '<g class="net-chart-series" data-series-index="' + seriesIndex + '">' +
-      '<title>' + item.artist + '</title>' + halo + visibleLine + hitLine + points + '</g>';
+      '<title>' + item.artist + '</title>' + visibleLine + hitLine + points + '</g>';
   }).join("");
 
   const legend = series.map((item, index) => {
     const swatch = item.colors.length > 1
       ? "linear-gradient(90deg," + item.colors.join(",") + ")"
       : item.colors[0];
-    const border = item.artist === "BLACKPINK" ? "border:1px solid #9ba3b2;" : "";
     return '<button type="button" class="net-chart-legend-button" data-series-index="' + index + '" aria-label="' + item.artist + ' 그래프 선 강조">' +
-      '<span class="net-chart-swatch" style="background:' + swatch + ';' + border + '"></span>' +
+      '<span class="net-chart-swatch" style="background:' + swatch + '"></span>' +
       '<span>' + item.artist + '</span></button>';
   }).join("");
 
@@ -654,6 +648,7 @@ function renderHistory(history, currentData) {
 
   // Keep the original 20-artist display scope; calculate ranks against all 30 artists.
   const artists = Object.entries(CHART_SCORES)
+    .filter(([artist]) => artist !== "BLACKPINK")
     .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, 20)
     .map(([artist]) => artist);
