@@ -692,15 +692,46 @@ function renderHistory(history, currentData) {
       ? scoresByDate.get(previousCurrentDate)?.get(artist)
       : null;
     let currentCell = '<td class="muted">—</td>';
+    let currentDelta = null;
     if (Number.isFinite(currentScore) && Number.isFinite(previousScore)) {
-      const delta = round2(currentScore - previousScore);
-      const changeClass = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
-      const value = (delta > 0 ? "+" : "") + delta.toFixed(2);
+      currentDelta = round2(currentScore - previousScore);
+      const changeClass = currentDelta > 0 ? "up" : currentDelta < 0 ? "down" : "flat";
+      const value = (currentDelta > 0 ? "+" : "") + currentDelta.toFixed(2);
       currentCell = '<td class="score-delta-cell"><span class="' + changeClass + '">' + value + '</span></td>';
     }
-    return "<tr><td>" + artist + "</td>" + cells + (includeCurrent ? currentCell : "") + "</tr>";
+
+    // Sum all displayed daily changes and the current change into one net total.
+    const dailyDeltas = dates.slice(1).map((date) => {
+      const dateValue = new Date(date + "T00:00:00Z");
+      dateValue.setUTCDate(dateValue.getUTCDate() - 1);
+      const previousDate = dateValue.toISOString().slice(0, 10);
+      const score = scoresByDate.get(date)?.get(artist);
+      const previous = scoresByDate.get(previousDate)?.get(artist);
+      return Number.isFinite(score) && Number.isFinite(previous)
+        ? round2(score - previous)
+        : null;
+    });
+    const accumulatedValues = [...dailyDeltas, ...(includeCurrent ? [currentDelta] : [])]
+      .filter(Number.isFinite);
+    const accumulatedDelta = accumulatedValues.length
+      ? round2(accumulatedValues.reduce((sum, value) => sum + value, 0))
+      : null;
+    const accumulatedCell = Number.isFinite(accumulatedDelta)
+      ? '<td class="score-delta-cell"><span class="' +
+        (accumulatedDelta > 0 ? "up" : accumulatedDelta < 0 ? "down" : "flat") +
+        '">' + (accumulatedDelta > 0 ? "+" : "") + accumulatedDelta.toFixed(2) +
+        '</span></td>'
+      : '<td class="muted">—</td>';
+
+    return "<tr><td>" + artist + "</td>" + cells +
+      (includeCurrent ? currentCell : "") + accumulatedCell + "</tr>";
   }).join("");
-  table($("score-trend-table"), ["아티스트", ...dates.map(dateLabel), ...(includeCurrent ? ["현재"] : [])], scoreTrendBody);
+  table($("score-trend-table"), [
+    "아티스트",
+    ...dates.map(dateLabel),
+    ...(includeCurrent ? ["현재"] : []),
+    "누적 증감"
+  ], scoreTrendBody);
 
   const rankByDate = new Map();
   for (const date of dates) rankByDate.set(date, rankRows(calculate(dailyRows(history, date))));
