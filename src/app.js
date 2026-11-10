@@ -636,6 +636,7 @@ function renderHistory(history, currentData) {
   if (!dates.length) {
     const waiting = '<tr><td class="muted">아직 23:59(KST) 일일 스냅샷이 없습니다. 오늘 기록은 23:59 자동 수집 후 표시됩니다.</td></tr>';
     table($("rank-table"), ["기록 상태"], waiting);
+    table($("score-trend-table"), ["기록 상태"], waiting);
     table($("votes-table"), ["기록 상태"], waiting);
     renderNetVoteChart(history, [], currentData, false);
     return;
@@ -656,6 +657,32 @@ function renderHistory(history, currentData) {
     .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, 20)
     .map(([artist]) => artist);
+
+  // Section 03: daily Total Score change versus the previous calendar day.
+  // Only official daily 23:59 KST snapshots are used; live/manual readings stay out.
+  const scoresByDate = new Map(dates.map((date) => [
+    date,
+    new Map(calculate(dailyRows(history, date)).map((row) => [row.artist, row.totalScore]))
+  ]));
+  const scoreTrendBody = artists.map((artist) => {
+    const cells = dates.map((date, index) => {
+      const previousDateValue = new Date(date + "T00:00:00Z");
+      previousDateValue.setUTCDate(previousDateValue.getUTCDate() - 1);
+      const previousDate = previousDateValue.toISOString().slice(0, 10);
+      const currentScore = scoresByDate.get(date)?.get(artist);
+      const previousScore = scoresByDate.get(previousDate)?.get(artist);
+      if (!Number.isFinite(currentScore) || !Number.isFinite(previousScore)) {
+        return '<td class="muted">—</td>';
+      }
+      const delta = round2(currentScore - previousScore);
+      const changeClass = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
+      const value = (delta > 0 ? "+" : "") + delta.toFixed(2);
+      return '<td class="score-delta-cell"><span class="' + changeClass + '">' + value + '</span></td>';
+    }).join("");
+    return "<tr><td>" + artist + "</td>" + cells + "</tr>";
+  }).join("");
+  table($("score-trend-table"), ["아티스트", ...dates.map(dateLabel)], scoreTrendBody);
+
   const rankByDate = new Map();
   for (const date of dates) rankByDate.set(date, rankRows(calculate(dailyRows(history, date))));
   const currentRanked = includeCurrent ? rankRows(calculate(currentData.rows)) : null;
