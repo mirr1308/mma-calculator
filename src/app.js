@@ -659,13 +659,21 @@ function renderHistory(history, currentData) {
     .map(([artist]) => artist);
 
   // Section 03: daily Total Score change versus the previous calendar day.
-  // Only official daily 23:59 KST snapshots are used; live/manual readings stay out.
   const scoresByDate = new Map(dates.map((date) => [
     date,
     new Map(calculate(dailyRows(history, date)).map((row) => [row.artist, row.totalScore]))
   ]));
+  const currentScoresByName = includeCurrent
+    ? new Map(calculate(currentData.rows).map((row) => [row.artist, row.totalScore]))
+    : new Map();
+  const currentDate = includeCurrent ? koreaDateKey(currentData.collectedAt) : null;
+  const previousCurrentDateValue = currentDate ? new Date(currentDate + "T00:00:00Z") : null;
+  if (previousCurrentDateValue) previousCurrentDateValue.setUTCDate(previousCurrentDateValue.getUTCDate() - 1);
+  const previousCurrentDate = previousCurrentDateValue
+    ? previousCurrentDateValue.toISOString().slice(0, 10)
+    : null;
   const scoreTrendBody = artists.map((artist) => {
-    const cells = dates.map((date, index) => {
+    const cells = dates.map((date) => {
       const previousDateValue = new Date(date + "T00:00:00Z");
       previousDateValue.setUTCDate(previousDateValue.getUTCDate() - 1);
       const previousDate = previousDateValue.toISOString().slice(0, 10);
@@ -679,9 +687,20 @@ function renderHistory(history, currentData) {
       const value = (delta > 0 ? "+" : "") + delta.toFixed(2);
       return '<td class="score-delta-cell"><span class="' + changeClass + '">' + value + '</span></td>';
     }).join("");
-    return "<tr><td>" + artist + "</td>" + cells + "</tr>";
+    const currentScore = currentScoresByName.get(artist);
+    const previousScore = previousCurrentDate
+      ? scoresByDate.get(previousCurrentDate)?.get(artist)
+      : null;
+    let currentCell = '<td class="muted">—</td>';
+    if (Number.isFinite(currentScore) && Number.isFinite(previousScore)) {
+      const delta = round2(currentScore - previousScore);
+      const changeClass = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
+      const value = (delta > 0 ? "+" : "") + delta.toFixed(2);
+      currentCell = '<td class="score-delta-cell"><span class="' + changeClass + '">' + value + '</span></td>';
+    }
+    return "<tr><td>" + artist + "</td>" + cells + (includeCurrent ? currentCell : "") + "</tr>";
   }).join("");
-  table($("score-trend-table"), ["아티스트", ...dates.map(dateLabel)], scoreTrendBody);
+  table($("score-trend-table"), ["아티스트", ...dates.map(dateLabel), ...(includeCurrent ? ["현재"] : [])], scoreTrendBody);
 
   const rankByDate = new Map();
   for (const date of dates) rankByDate.set(date, rankRows(calculate(dailyRows(history, date))));
