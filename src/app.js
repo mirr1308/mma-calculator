@@ -668,7 +668,13 @@ function renderHistory(history, currentData) {
     ? previousCurrentDateValue.toISOString().slice(0, 10)
     : null;
   const scoreTrendBody = artists.map((artist) => {
-    const cells = dates.map((date) => {
+    const cells = dates.map((date, index) => {
+      const currentScore = scoresByDate.get(date)?.get(artist);
+      if (index === 0) {
+        return Number.isFinite(currentScore)
+          ? '<td class="score">' + currentScore.toFixed(2) + '</td>'
+          : '<td class="muted">—</td>';
+      }
       const previousDateValue = new Date(date + "T00:00:00Z");
       previousDateValue.setUTCDate(previousDateValue.getUTCDate() - 1);
       const previousDate = previousDateValue.toISOString().slice(0, 10);
@@ -723,7 +729,7 @@ function renderHistory(history, currentData) {
   }).join("");
   table($("score-trend-table"), [
     "아티스트",
-    ...dates.map(dateLabel),
+    ...dates.map((date, index) => index === 0 ? dateLabel(date) + " 기준 점수" : dateLabel(date)),
     ...(includeCurrent ? ["현재"] : []),
     "누적 증감"
   ], scoreTrendBody);
