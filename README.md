@@ -7,7 +7,7 @@ Static dashboard for the 2026 MMA vote tracker.
 - The collector fetches Berriz + Melon, validates both 30-artist sets, and atomically updates `public.mma`.
 - Every successful collection is stored as an immutable JSON snapshot under `history/snapshots/YYYY-MM-DD/`.
 - The annual `history/YYYY.json` file keeps the latest cumulative vote snapshot for each date.
-- The dashboard shows current scores, daily ranks, and daily net votes.
+- The dashboard shows current scores, daily ranks, daily Total Score changes, and daily net votes.
 
 ## Score formula
 - Total Vote = Korea + Global
