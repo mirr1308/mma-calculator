@@ -672,15 +672,6 @@ function renderHistory(history, currentData) {
     date,
     new Map(calculate(dailyRows(history, date)).map((row) => [row.artist, row.totalScore]))
   ]));
-  const currentScoresByName = includeCurrent
-    ? new Map(calculate(currentData.rows).map((row) => [row.artist, row.totalScore]))
-    : new Map();
-  const currentDate = includeCurrent ? koreaDateKey(currentData.collectedAt) : null;
-  const previousCurrentDateValue = currentDate ? new Date(currentDate + "T00:00:00Z") : null;
-  if (previousCurrentDateValue) previousCurrentDateValue.setUTCDate(previousCurrentDateValue.getUTCDate() - 1);
-  const previousCurrentDate = previousCurrentDateValue
-    ? previousCurrentDateValue.toISOString().slice(0, 10)
-    : null;
   const scoreTrendBody = artists.map((artist) => {
     const cells = dates.map((date, index) => {
       const currentScore = scoresByDate.get(date)?.get(artist);
@@ -702,20 +693,7 @@ function renderHistory(history, currentData) {
       const value = (delta > 0 ? "+" : "") + delta.toFixed(2);
       return '<td class="score-delta-cell"><span class="' + changeClass + '">' + value + '</span></td>';
     }).join("");
-    const currentScore = currentScoresByName.get(artist);
-    const previousScore = previousCurrentDate
-      ? scoresByDate.get(previousCurrentDate)?.get(artist)
-      : null;
-    let currentCell = '<td class="muted">—</td>';
-    let currentDelta = null;
-    if (Number.isFinite(currentScore) && Number.isFinite(previousScore)) {
-      currentDelta = round2(currentScore - previousScore);
-      const changeClass = currentDelta > 0 ? "up" : currentDelta < 0 ? "down" : "flat";
-      const value = (currentDelta > 0 ? "+" : "") + currentDelta.toFixed(2);
-      currentCell = '<td class="score-delta-cell"><span class="' + changeClass + '">' + value + '</span></td>';
-    }
-
-    // Sum all displayed daily changes and the current change into one net total.
+    // Sum daily changes from the first baseline through the latest dated snapshot.
     const dailyDeltas = dates.slice(1).map((date) => {
       const dateValue = new Date(date + "T00:00:00Z");
       dateValue.setUTCDate(dateValue.getUTCDate() - 1);
@@ -726,8 +704,7 @@ function renderHistory(history, currentData) {
         ? round2(score - previous)
         : null;
     });
-    const accumulatedValues = [...dailyDeltas, ...(includeCurrent ? [currentDelta] : [])]
-      .filter(Number.isFinite);
+    const accumulatedValues = dailyDeltas.filter(Number.isFinite);
     const accumulatedDelta = accumulatedValues.length
       ? round2(accumulatedValues.reduce((sum, value) => sum + value, 0))
       : null;
