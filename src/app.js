@@ -82,62 +82,6 @@ function dailyHistoryDates(history) {
 }
 
 // The target artist identifier is kept in JS; it is never rendered as a label in the HTML.
-const TARGET_ARTIST_FOR_THRESHOLD = "RIIZE";
-
-function minimumVotesForTopTen(rows) {
-  const target = rows.find((row) => row.artist === TARGET_ARTIST_FOR_THRESHOLD);
-  const targetChartScore = CHART_SCORES[TARGET_ARTIST_FOR_THRESHOLD];
-  if (!target || !Number.isFinite(targetChartScore) || !rows.length) return null;
-
-  const competitors = rows.filter((row) => row.artist !== TARGET_ARTIST_FOR_THRESHOLD);
-  if (competitors.some((row) => !Number.isFinite(CHART_SCORES[row.artist]))) return null;
-
-  const targetCurrentVotes = Math.max(0, Number(target.korea || 0) + Number(target.global || 0));
-  const competitorMaxVotes = Math.max(
-    0,
-    ...competitors.map((row) => Number(row.korea || 0) + Number(row.global || 0))
-  );
-
-  // Mirror the dashboard's exact score rounding and tie-break rules.
-  const rankAtVotes = (candidateVotes) => {
-    const maxVote = Math.max(candidateVotes, competitorMaxVotes);
-    const ranked = rows.map((row) => {
-      const totalVote = row.artist === TARGET_ARTIST_FOR_THRESHOLD
-        ? candidateVotes
-        : Number(row.korea || 0) + Number(row.global || 0);
-      const voteScore = maxVote ? round2(totalVote / maxVote * 20) : 0;
-      const totalScore = round2(CHART_SCORES[row.artist] + voteScore);
-      return { artist: row.artist, totalVote, totalScore };
-    }).sort((a, b) =>
-      b.totalScore - a.totalScore ||
-      b.totalVote - a.totalVote ||
-      a.artist.localeCompare(b.artist)
-    );
-
-    return ranked.findIndex((row) => row.artist === TARGET_ARTIST_FOR_THRESHOLD) + 1;
-  };
-
-  // Find the absolute minimum cumulative vote total that reaches rank 10,
-  // independent of how many votes the target already has in this snapshot.
-  let low = 0;
-  if (rankAtVotes(low) <= 10) return 0;
-
-  let high = Math.max(1, Math.ceil(targetCurrentVotes), Math.ceil(competitorMaxVotes));
-  const maxSearch = 1_000_000_000_000_000;
-
-  while (rankAtVotes(high) > 10 && high < maxSearch) {
-    high = Math.min(maxSearch, high * 2);
-  }
-  if (rankAtVotes(high) > 10) return null;
-
-  while (low < high) {
-    const mid = Math.floor((low + high) / 2);
-    if (rankAtVotes(mid) <= 10) high = mid;
-    else low = mid + 1;
-  }
-  return low;
-}
-
 function koreaDateKey(iso) {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat("en-US", {
@@ -149,117 +93,6 @@ function koreaDateKey(iso) {
   );
   return parts.year + "-" + parts.month + "-" + parts.day;
 }
-
-function renderThresholdHistory(history, currentData) {
-  const snapshots = new Map();
-  const savedByDate = history?._meta?.thresholdSnapshotsByDate;
-
-  if (savedByDate && typeof savedByDate === "object" && !Array.isArray(savedByDate)) {
-    for (const [date, snapshot] of Object.entries(savedByDate)) {
-      if (
-        /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) &&
-        snapshot && Array.isArray(snapshot.rows) &&
-        snapshot.rows.length > 0
-      ) {
-        snapshots.set(date, snapshot);
-      }
-    }
-  }
-
-  // Backfill the most recent existing records for years created before this map.
-  const meta = history?._meta || {};
-  for (const snapshot of [meta.previousSnapshot, meta.latestSnapshot]) {
-    if (
-      snapshot &&
-      typeof snapshot.date === "string" &&
-      typeof snapshot.collectedAt === "string" &&
-      Array.isArray(snapshot.rows) &&
-      !snapshots.has(snapshot.date)
-    ) {
-      snapshots.set(snapshot.date, snapshot);
-    }
-  }
-
-  // Prefer the current Supabase mma data whenever it is newer than the saved daily sample.
-  if (
-    currentData &&
-    typeof currentData.collectedAt === "string" &&
-    Array.isArray(currentData.rows) &&
-    currentData.rows.length > 0
-  ) {
-    const date = koreaDateKey(currentData.collectedAt);
-    const stored = snapshots.get(date);
-    if (!stored || !stored.collectedAt || Date.parse(currentData.collectedAt) >= Date.parse(stored.collectedAt)) {
-      snapshots.set(date, {
-        date,
-        collectedAt: currentData.collectedAt,
-        source: "live",
-        rows: currentData.rows
-      });
-    }
-  }
-
-  const dates = [...snapshots.keys()].sort();
-  if (!dates.length) {
-    table(
-      $("threshold-table"),
-      ["현재 수집 데이터 대기"],
-      '<tr><td class="muted">투표 데이터가 수집되면 최소 득표수를 계산합니다.</td></tr>'
-    );
-    return;
-  }
-
-  const valuesByDate = dates.map((date) => {
-    const rows = snapshots.get(date).rows;
-    const target = rows.find((row) => row.artist === TARGET_ARTIST_FOR_THRESHOLD);
-    const requiredVotes = minimumVotesForTopTen(rows);
-    const currentVotes = target
-      ? Math.max(0, Number(target.korea || 0) + Number(target.global || 0))
-      : null;
-    const maxVote = Math.max(
-      0,
-      ...rows.map((row) => Math.max(0, Number(row.korea || 0) + Number(row.global || 0)))
-    );
-    const voteShare = requiredVotes !== null && maxVote > 0
-      ? requiredVotes / maxVote * 100
-      : null;
-    const difference = requiredVotes !== null && currentVotes !== null
-      ? requiredVotes - currentVotes
-      : null;
-
-    return {
-      requiredText: requiredVotes === null ? "—" : number(requiredVotes),
-      currentText: currentVotes === null ? "—" : number(currentVotes),
-      differenceText: difference === null
-        ? "—"
-        : (difference > 0 ? "+" : "") + number(difference),
-      differenceClass: difference === null
-        ? "muted"
-        : difference > 0 ? "up" : difference < 0 ? "down" : "flat",
-      voteShareText: voteShare === null ? "—" : voteShare.toFixed(2) + "%"
-    };
-  });
-
-  const metrics = [
-    { label: "최소 누적 득표수", value: (item) => item.requiredText },
-    { label: "현재 득표수", value: (item) => item.currentText },
-    { label: "차이", value: (item) => item.differenceText },
-    { label: "최소 득표 점유율", value: (item) => item.voteShareText }
-  ];
-
-  const body = metrics.map((metric) =>
-    "<tr><td>" + metric.label + "</td>" +
-    valuesByDate.map((item) => {
-      const className = metric.label === "차이" ? item.differenceClass : "";
-      return '<td class="' + className + '">' + metric.value(item) + "</td>";
-    }).join("") +
-    "</tr>"
-  ).join("");
-
-  // Four metric rows, with one date per column.
-  table($("threshold-table"), ["항목", ...dates.map(dateLabel)], body);
-}
-
 
 async function getHistory() {
   try {
@@ -340,20 +173,15 @@ function renderCurrent(raw, history) {
     const scoreDelta = old && r.totalScore !== null && Number.isFinite(CHART_SCORES[r.artist])
       ? round2(r.totalScore - (old.chartScore + old.voteScore)) : null;
     const rank = sorted ? sorted.findIndex(x => x.artist === r.artist) + 1 : "—";
-    const oldRank = previousRanks.get(r.artist);
-    const rankDelta = oldRank && sorted ? oldRank - rank : null;
     const deltaHtml = scoreDelta === null ? '<span class="muted">—</span>' :
       '<span class="' + (scoreDelta > 0 ? "up" : scoreDelta < 0 ? "down" : "flat") + '">' +
       (scoreDelta > 0 ? "▲ " : scoreDelta < 0 ? "▼ " : "– ") + Math.abs(scoreDelta).toFixed(2) + '</span>';
-    const rankHtml = rankDelta === null ? '<span class="muted">—</span>' :
-      '<span class="' + (rankDelta > 0 ? "up" : rankDelta < 0 ? "down" : "flat") + '">' +
-      (rankDelta > 0 ? "▲ " + rankDelta : rankDelta < 0 ? "▼ " + Math.abs(rankDelta) : "–") + '</span>';
     return '<tr><td>' + r.artist + '</td><td class="rank">' + rank + '</td><td>' + number(r.totalVote) +
       '</td><td>' + r.voteScore.toFixed(2) + '</td><td>' + (r.chartScore === null ? "미설정" : r.chartScore.toFixed(2)) +
       '</td><td class="score">' + (r.totalScore === null ? "미설정" : r.totalScore.toFixed(2)) +
-      '</td><td>' + deltaHtml + '</td><td>' + rankHtml + '</td></tr>';
+      '</td><td>' + deltaHtml + '</td></tr>';
   }).join("");
-  table($("current-table"), ["아티스트","현재 순위","Total Vote","Vote Score","Chart Score","Total Score","점수 증감","순위 증감"], rows);
+  table($("current-table"), ["아티스트","현재 순위","Total Vote","Vote Score","Chart Score","Total Score","점수 증감"], rows);
   const complete = Object.values(CHART_SCORES).every(Number.isFinite);
   $("score-hint").textContent = complete
     ? (previous
@@ -650,16 +478,6 @@ function renderHistory(history, currentData) {
     return;
   }
 
-  const latestDate = dates.at(-1);
-  const latestDailyAt = history?._meta?.lastCollectedAtByDate?.[latestDate] || null;
-  const includeCurrent = Boolean(
-    currentData &&
-    Array.isArray(currentData.rows) &&
-    currentData.rows.length > 0 &&
-    currentData.collectedAt &&
-    (!latestDailyAt || Date.parse(currentData.collectedAt) > Date.parse(latestDailyAt))
-  );
-
   // Keep the original 20-artist display scope; calculate ranks against all 30 artists.
   const artists = Object.entries(CHART_SCORES)
     .filter(([artist]) => artist !== "BLACKPINK")
@@ -725,21 +543,15 @@ function renderHistory(history, currentData) {
 
   const rankByDate = new Map();
   for (const date of dates) rankByDate.set(date, rankRows(calculate(dailyRows(history, date))));
-  const currentRanked = includeCurrent ? rankRows(calculate(currentData.rows)) : null;
-
   const rankBody = artists.map((artist) => {
     const cells = dates.map((date) => {
       const ranked = rankByDate.get(date);
       const rank = ranked ? ranked.findIndex(r => r.artist === artist) + 1 : 0;
       return "<td>" + (rank > 0 ? '<span class="rank">' + rank + '</span>' : '<span class="muted">—</span>') + "</td>";
     }).join("");
-    const currentRank = currentRanked ? currentRanked.findIndex(r => r.artist === artist) + 1 : 0;
-    const currentCell = includeCurrent
-      ? "<td>" + (currentRank > 0 ? '<span class="rank">' + currentRank + '</span>' : '<span class="muted">—</span>') + "</td>"
-      : "";
-    return "<tr><td>" + artist + "</td>" + cells + currentCell + "</tr>";
+    return "<tr><td>" + artist + "</td>" + cells + "</tr>";
   }).join("");
-  table($("rank-table"), ["아티스트", ...dates.map(dateLabel), ...(includeCurrent ? ["현재"] : [])], rankBody);
+  table($("rank-table"), ["아티스트", ...dates.map(dateLabel)], rankBody);
 
   const voteBody = artists.map((artist) => {
     const cells = dates.map((date, index) => {
@@ -775,7 +587,6 @@ async function refresh() {
     const [current, history] = await Promise.all([getCurrent(), getHistory()]);
     renderCurrent(current, history);
     renderHistory(history, current);
-    renderThresholdHistory(history, current);
     if (collected.historySaved) {
       $("data-status").textContent = "저장 완료 · " + current.rowCount + " ARTISTS";
       $("data-status").className = "status ok";
