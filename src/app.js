@@ -387,29 +387,22 @@ const NET_VOTE_CHART_SERIES = [
   ["ENHYPEN", ["#6B7280"]]
 ];
 
-function renderNetVoteChart(history, dates, currentData, includeCurrent) {
+function renderNetVoteChart(history, dates) {
   const mount = $("net-vote-chart");
   if (!mount) return;
 
   const chartDates = dates.slice(1);
-  if (includeCurrent) chartDates.push("__current__");
-  const chartDateLabel = (date) => date === "__current__" ? "현재" : dateLabel(date);
-  const currentRows = new Map((currentData?.rows || []).map((row) => [row.artist, row]));
-  const latestOfficialRows = new Map(dailyRows(history, dates.at(-1)).map((row) => [row.artist, row]));
+  const chartDateLabel = (date) => dateLabel(date);
   if (!chartDates.length) {
     mount.innerHTML = '<p class="muted">비교할 전날 기록이 아직 없습니다. 두 번째 23:59(KST) 스냅샷부터 그래프가 표시됩니다.</p>';
     return;
   }
 
   const rowsByDate = chartDates.map((date) =>
-    date === "__current__"
-      ? currentRows
-      : new Map(dailyRows(history, date).map((row) => [row.artist, row]))
+    new Map(dailyRows(history, date).map((row) => [row.artist, row]))
   );
   const previousRowsByDate = chartDates.map((date, index) =>
-    date === "__current__"
-      ? latestOfficialRows
-      : new Map(dailyRows(history, dates[index]).map((row) => [row.artist, row]))
+    new Map(dailyRows(history, dates[index]).map((row) => [row.artist, row]))
   );
 
   const series = NET_VOTE_CHART_SERIES.map(([artist, colors], index) => ({
@@ -635,7 +628,18 @@ function renderNetVoteChart(history, dates, currentData, includeCurrent) {
 
 
 function renderHistory(history, currentData) {
-  // Sections 02 and 03 retain official 23:59 KST columns and append a live column.
+  // Merge the newest read-only Supabase snapshot into its KST calendar-date column.
+  const viewHistory = { ...history, _meta: { ...(history?._meta || {}) } };
+  const liveDate = currentData?.collectedAt ? koreaDateKey(currentData.collectedAt) : null;
+  const savedSnapshot = history?._meta?.latestSnapshot;
+  if (liveDate && liveDate <= "2026-11-13" &&
+      Array.isArray(currentData.rows) && currentData.rows.length &&
+      (!savedSnapshot?.collectedAt || Date.parse(currentData.collectedAt) >= Date.parse(savedSnapshot.collectedAt))) {
+    viewHistory[liveDate] = { rows: currentData.rows };
+    viewHistory._meta.dailySnapshotAtByDate = { ...(viewHistory._meta.dailySnapshotAtByDate || {}), [liveDate]: currentData.collectedAt };
+  }
+  history = viewHistory;
+  // Sections 02–05 display dated columns only.
   const dates = dailyHistoryDates(history);
   if (!dates.length) {
     const waiting = '<tr><td class="muted">아직 23:59(KST) 일일 스냅샷이 없습니다. 오늘 기록은 23:59 자동 수집 후 표시됩니다.</td></tr>';
@@ -734,13 +738,11 @@ function renderHistory(history, currentData) {
         '</span></td>'
       : '<td class="muted">—</td>';
 
-    return "<tr><td>" + artist + "</td>" + cells +
-      (includeCurrent ? currentCell : "") + accumulatedCell + "</tr>";
+    return "<tr><td>" + artist + "</td>" + cells + accumulatedCell + "</tr>";
   }).join("");
   table($("score-trend-table"), [
     "아티스트",
     ...dates.map((date, index) => index === 0 ? dateLabel(date) + " 기준 점수" : dateLabel(date)),
-    ...(includeCurrent ? ["현재"] : []),
     "누적 증감"
   ], scoreTrendBody);
 
@@ -762,8 +764,6 @@ function renderHistory(history, currentData) {
   }).join("");
   table($("rank-table"), ["아티스트", ...dates.map(dateLabel), ...(includeCurrent ? ["현재"] : [])], rankBody);
 
-  const latestOfficialByName = new Map(dailyRows(history, latestDate).map((row) => [row.artist, row]));
-  const currentByName = new Map((currentData?.rows || []).map((row) => [row.artist, row]));
   const voteBody = artists.map((artist) => {
     const cells = dates.map((date, index) => {
       if (index === 0) return '<td class="muted">—</td>';
@@ -779,27 +779,10 @@ function renderHistory(history, currentData) {
         '<span class="net-vote-total">' + (total > 0 ? "+" : "") + number(total) + '</span>' +
         '</td>';
     }).join("");
-    let currentCell = "";
-    if (includeCurrent) {
-      const now = currentByName.get(artist);
-      const before = latestOfficialByName.get(artist);
-      if (now && before) {
-        const g = Number(now.global) - Number(before.global);
-        const k = Number(now.korea) - Number(before.korea);
-        const total = g + k;
-        currentCell = '<td class="net-vote-cell">' +
-          '<span class="net-vote-global">' + (g > 0 ? "+" : "") + number(g) + '</span>' +
-          '<span class="net-vote-korea">' + (k > 0 ? "+" : "") + number(k) + '</span>' +
-          '<span class="net-vote-total">' + (total > 0 ? "+" : "") + number(total) + '</span>' +
-          '</td>';
-      } else {
-        currentCell = '<td class="muted">—</td>';
-      }
-    }
-    return "<tr><td>" + artist + "</td>" + cells + currentCell + "</tr>";
+    return "<tr><td>" + artist + "</td>" + cells + "</tr>";
   }).join("");
-  table($("votes-table"), ["아티스트", ...dates.map(dateLabel), ...(includeCurrent ? ["현재"] : [])], voteBody);
-  renderNetVoteChart(history, dates, currentData, includeCurrent);
+  table($("votes-table"), ["아티스트", ...dates.map(dateLabel)], voteBody);
+  renderNetVoteChart(history, dates);
 }
 
 async function refresh() {
