@@ -55,6 +55,8 @@ function dailyRows(history, date) {
   if (entry && Array.isArray(entry.snapshots) && entry.snapshots.length) {
     return entry.snapshots[entry.snapshots.length - 1].rows || [];
   }
+  const latest = history?._meta?.latestSnapshot;
+  if (latest && latest.date === date && Array.isArray(latest.rows) && latest.rows.length) return latest.rows;
   return [];
 }
 
@@ -63,6 +65,14 @@ function dailyHistoryDates(history) {
   if (dailyMap && typeof dailyMap === "object" && !Array.isArray(dailyMap)) {
     return Object.keys(dailyMap)
       .filter((date) => /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) && dailyRows(history, date).length > 0)
+      .concat(
+        history?._meta?.latestSnapshot?.date &&
+        history._meta.latestSnapshot.date <= "2026-11-13" &&
+        Array.isArray(history._meta.latestSnapshot.rows) &&
+        history._meta.latestSnapshot.rows.length
+          ? [history._meta.latestSnapshot.date] : []
+      )
+      .filter((date, index, all) => all.indexOf(date) === index)
       .sort();
   }
   // Before this marker existed, date rows were the legacy daily records.
@@ -847,3 +857,4 @@ async function loadDashboard() {
 
 $("refresh-button").addEventListener("click", refresh);
 loadDashboard();
+window.setInterval(() => loadDashboard(), 5 * 60 * 1000);
