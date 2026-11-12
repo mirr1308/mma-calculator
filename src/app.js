@@ -612,7 +612,6 @@ async function loadDashboard() {
     const [current, history] = await Promise.all([getCurrent(), getHistory()]);
     renderCurrent(current, history);
     renderHistory(history, current);
-    renderThresholdHistory(history, current);
     $("data-status").textContent = "LIVE · " + current.rowCount + " ARTISTS";
     $("data-status").className = "status ok";
   } catch (error) {
