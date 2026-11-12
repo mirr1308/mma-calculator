@@ -213,7 +213,7 @@ const NET_VOTE_CHART_SERIES = [
   ["ENHYPEN", ["#6B7280"]]
 ];
 
-function renderNetVoteChart(history, dates) {
+function renderNetVoteChart(history, dates, artists) {
   const mount = $("net-vote-chart");
   if (!mount) return;
 
@@ -231,9 +231,15 @@ function renderNetVoteChart(history, dates) {
     new Map(dailyRows(history, dates[index]).map((row) => [row.artist, row]))
   );
 
-  const series = NET_VOTE_CHART_SERIES.map(([artist, colors], index) => ({
+  const knownSeriesColors = new Map(NET_VOTE_CHART_SERIES.map(([artist, colors]) => [artist, colors]));
+  const fallbackSeriesColors = [
+    "#78C98B", "#F4A6D0", "#42C6C5", "#A87955", "#F48FB1",
+    "#558BEA", "#B58BEF", "#F4D35E", "#8ED8F5", "#E9515F",
+    "#FF963F", "#6B7280", "#AAB2BD", "#B7F34A", "#F1B8D0"
+  ];
+  const series = artists.map((artist, index) => ({
     artist,
-    colors,
+    colors: knownSeriesColors.get(artist) || [fallbackSeriesColors[index % fallbackSeriesColors.length]],
     id: "net-vote-gradient-" + index,
     values: chartDates.map((date, dateIndex) => {
       const current = rowsByDate[dateIndex].get(artist);
@@ -334,7 +340,7 @@ function renderNetVoteChart(history, dates) {
 
   mount.innerHTML =
     '<div class="net-chart-shell">' +
-      '<div class="net-chart-scroll"><svg class="net-chart-svg" viewBox="0 0 ' + width + ' ' + height + '" width="' + width + '" height="' + height + '" role="img" aria-label="20개 아티스트의 일자별 총 순증가 득표 선형 그래프">' +
+      '<div class="net-chart-scroll"><svg class="net-chart-svg" viewBox="0 0 ' + width + ' ' + height + '" width="' + width + '" height="' + height + '" role="img" aria-label="15개 아티스트의 일자별 총 순증가 득표 선형 그래프">' +
       '<defs>' + defs + '</defs>' +
       '<text x="' + margin.left + '" y="13" fill="#aeb8c9" font-size="10">일일 순증가 득표수</text>' +
       grid + xLabels + lines +
@@ -472,16 +478,20 @@ function renderHistory(history, currentData) {
     table($("rank-table"), ["기록 상태"], waiting);
     table($("score-trend-table"), ["기록 상태"], waiting);
     table($("votes-table"), ["기록 상태"], waiting);
-    renderNetVoteChart(history, [], currentData, false);
+    renderNetVoteChart(history, [], []);
     return;
   }
 
-  // Keep the original 20-artist display scope; calculate ranks against all 30 artists.
-  const artists = Object.entries(CHART_SCORES)
-    .filter(([artist]) => artist !== "BLACKPINK")
-    .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .slice(0, 20)
-    .map(([artist]) => artist);
+  // Sections 02–05 follow the live ranking in section 01 and display its top 15.
+  const currentCalculated = Array.isArray(currentData?.rows) ? calculate(currentData.rows) : [];
+  const currentRanked = rankRows(currentCalculated) ||
+    [...currentCalculated].sort((a,b) => b.totalVote - a.totalVote || a.artist.localeCompare(b.artist));
+  const artists = currentRanked.length
+    ? currentRanked.slice(0, 15).map((row) => row.artist)
+    : Object.entries(CHART_SCORES)
+        .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .slice(0, 15)
+        .map(([artist]) => artist);
 
   // Section 03: daily Total Score change versus the previous calendar day.
   const scoresByDate = new Map(dates.map((date) => [
@@ -569,7 +579,7 @@ function renderHistory(history, currentData) {
     return "<tr><td>" + artist + "</td>" + cells + "</tr>";
   }).join("");
   table($("votes-table"), ["아티스트", ...dates.map(dateLabel)], voteBody);
-  renderNetVoteChart(history, dates);
+  renderNetVoteChart(history, dates, artists);
 }
 
 async function refresh() {
