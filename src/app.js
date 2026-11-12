@@ -162,9 +162,7 @@ function renderCurrent(raw, history) {
   const sorted = rankRows(calculated);
   const previous = previousSnapshot(history, raw.collectedAt);
   const previousCalculated = previous ? calculate(previous.rows || dailyRows(history, previous.date)) : [];
-  const previousRanked = rankRows(previousCalculated);
   const previousByName = new Map(previousCalculated.map((r) => [r.artist, r]));
-  const previousRanks = new Map((previousRanked || []).map((r,i) => [r.artist, i+1]));
   $("max-vote").textContent = number(Math.max(...calculated.map(r => r.totalVote)));
   $("updated-at").textContent = "수집 " + new Date(raw.collectedAt).toLocaleString("ko-KR", { timeZone:"Asia/Seoul" }) + " KST";
 
@@ -598,7 +596,7 @@ async function refresh() {
   } catch (error) {
     $("data-status").textContent = "수집 실패";
     $("data-status").className = "status error";
-    $("current-table").querySelector("tbody").innerHTML = '<tr><td colspan="8">' + String(error.message) + '</td></tr>';
+    $("current-table").querySelector("tbody").innerHTML = '<tr><td colspan="7">' + String(error.message) + '</td></tr>';
   } finally {
     button.disabled = false;
     button.textContent = originalLabel;
@@ -620,7 +618,7 @@ async function loadDashboard() {
   } catch (error) {
     $("data-status").textContent = "연결 실패";
     $("data-status").className = "status error";
-    $("current-table").querySelector("tbody").innerHTML = '<tr><td colspan="8">' + String(error.message) + '</td></tr>';
+    $("current-table").querySelector("tbody").innerHTML = '<tr><td colspan="7">' + String(error.message) + '</td></tr>';
   } finally {
     button.disabled = false;
   }
