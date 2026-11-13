@@ -36,130 +36,16 @@ function dailyHistoryDates(history) {
 }
 
 // The target artist identifier is kept in JS; it is never rendered as a label in the HTML.
-const TARGET_ARTIST_FOR_THRESHOLD = "RIIZE";
-
-function minimumVotesForTopTen(rows) {
-  const target = rows.find((row) => row.artist === TARGET_ARTIST_FOR_THRESHOLD);
-  const targetChartScore = CHART_SCORES[TARGET_ARTIST_FOR_THRESHOLD];
-  if (!target || !Number.isFinite(targetChartScore) || !rows.length) return null;
-
-  const competitors = rows.filter((row) => row.artist !== TARGET_ARTIST_FOR_THRESHOLD);
-  if (competitors.some((row) => !Number.isFinite(CHART_SCORES[row.artist]))) return null;
-
-  const targetCurrentVotes = Math.max(0, Number(target.korea || 0) + Number(target.global || 0));
-  const competitorMaxVotes = Math.max(
-    0,
-    ...competitors.map((row) => Number(row.korea || 0) + Number(row.global || 0))
-  );
-
-  // Mirror the dashboard's exact score rounding and tie-break rules.
-  const rankAtVotes = (candidateVotes) => {
-    const maxVote = Math.max(candidateVotes, competitorMaxVotes);
-    const ranked = rows.map((row) => {
-      const totalVote = row.artist === TARGET_ARTIST_FOR_THRESHOLD
-        ? candidateVotes
-        : Number(row.korea || 0) + Number(row.global || 0);
-      const voteScore = maxVote ? round2(totalVote / maxVote * 20) : 0;
-      const totalScore = round2(CHART_SCORES[row.artist] + voteScore);
-      return { artist: row.artist, totalVote, totalScore };
-    }).sort((a, b) =>
-      b.totalScore - a.totalScore ||
-      b.totalVote - a.totalVote ||
-      a.artist.localeCompare(b.artist)
-    );
-
-    return ranked.findIndex((row) => row.artist === TARGET_ARTIST_FOR_THRESHOLD) + 1;
-  };
-
-  // Find the absolute minimum cumulative vote total that reaches rank 10,
-  // independent of how many votes the target already has in this snapshot.
-  let low = 0;
-  if (rankAtVotes(low) <= 10) return 0;
-
-  let high = Math.max(1, Math.ceil(targetCurrentVotes), Math.ceil(competitorMaxVotes));
-  const maxSearch = 1_000_000_000_000_000;
-
-  while (rankAtVotes(high) > 10 && high < maxSearch) {
-    high = Math.min(maxSearch, high * 2);
-  }
-  if (rankAtVotes(high) > 10) return null;
-
-  while (low < high) {
-    const mid = Math.floor((low + high) / 2);
-    if (rankAtVotes(mid) <= 10) high = mid;
-    else low = mid + 1;
-  }
-  return low;
-}
-
-
-function renderThresholdHistory(history) {
-  const snapshots = new Map();
-  const savedByDate = history?._meta?.thresholdSnapshotsByDate;
-
-  if (savedByDate && typeof savedByDate === "object" && !Array.isArray(savedByDate)) {
-    for (const [date, snapshot] of Object.entries(savedByDate)) {
-      if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date) && snapshot && Array.isArray(snapshot.rows) && snapshot.rows.length > 0) {
-        snapshots.set(date, snapshot);
-      }
-    }
-  }
-
-  const meta = history?._meta || {};
-  for (const snapshot of [meta.previousSnapshot, meta.latestSnapshot]) {
-    if (snapshot && typeof snapshot.date === "string" && typeof snapshot.collectedAt === "string" && Array.isArray(snapshot.rows) && !snapshots.has(snapshot.date)) {
-      snapshots.set(snapshot.date, snapshot);
-    }
-  }
-
-  const dates = [...snapshots.keys()].sort();
-  if (!dates.length) {
-    table($("threshold-table"), ["기록 상태"], '<tr><td class="muted">날짜별 최소 득표수 기록이 없습니다.</td></tr>');
-    return;
-  }
-
-  const valuesByDate = dates.map((date) => {
-    const rows = snapshots.get(date).rows;
-    const target = rows.find((row) => row.artist === TARGET_ARTIST_FOR_THRESHOLD);
-    const requiredVotes = minimumVotesForTopTen(rows);
-    const savedVotes = target ? Math.max(0, Number(target.korea || 0) + Number(target.global || 0)) : null;
-    const maxVote = Math.max(0, ...rows.map((row) => Math.max(0, Number(row.korea || 0) + Number(row.global || 0))));
-    const voteShare = requiredVotes !== null && maxVote > 0 ? requiredVotes / maxVote * 100 : null;
-    const difference = requiredVotes !== null && savedVotes !== null ? requiredVotes - savedVotes : null;
-    return {
-      requiredText: requiredVotes === null ? "—" : number(requiredVotes),
-      savedText: savedVotes === null ? "—" : number(savedVotes),
-      differenceText: difference === null ? "—" : (difference > 0 ? "+" : "") + number(difference),
-      differenceClass: difference === null ? "muted" : difference > 0 ? "up" : difference < 0 ? "down" : "flat",
-      voteShareText: voteShare === null ? "—" : voteShare.toFixed(2) + "%"
-    };
-  });
-
-  const metrics = [
-    { label: "10위 진입 최소 누적 득표수", value: (item) => item.requiredText },
-    { label: "해당 날짜 득표수", value: (item) => item.savedText },
-    { label: "최소 득표수와의 차이", value: (item) => item.differenceText },
-    { label: "최소 득표 점유율", value: (item) => item.voteShareText }
-  ];
-
-  const body = metrics.map((metric) =>
-    "<tr><td>" + metric.label + "</td>" +
-    valuesByDate.map((item) => {
-      const className = metric.label === "최소 득표수와의 차이" ? item.differenceClass : "";
-      return '<td class="' + className + '">' + metric.value(item) + "</td>";
-    }).join("") +
-    "</tr>"
-  ).join("");
-
-  table($("threshold-table"), ["항목", ...dates.map(dateLabel)], body);
-}
-
 async function getHistory() {
-  try {
-    const response = await fetch(HISTORY_URL + "?v=" + Date.now(), { cache: "no-store" });
-    if (!response.ok) return {};
-    return await response.json();
-  } catch { return {}; }
+  const response = await fetch(HISTORY_URL + "?v=" + Date.now(), { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error("History JSON을 불러오지 못했습니다. HTTP " + response.status);
+  }
+  const history = await response.json();
+  if (!history || typeof history !== "object" || Array.isArray(history)) {
+    throw new Error("History JSON 형식이 올바르지 않습니다.");
+  }
+  return history;
 }
 
 function calculate(rows) {
@@ -188,9 +74,6 @@ function table(el, headers, body) {
 function renderFinalSnapshot(raw) {
   const calculated = calculate(raw.rows);
   const sorted = rankRows(calculated);
-  $("max-vote").textContent = number(Math.max(...calculated.map(r => r.totalVote)));
-  $("updated-at").textContent = "최종 수집 " + new Date(raw.collectedAt).toLocaleString("ko-KR", { timeZone:"Asia/Seoul" }) + " KST";
-
   const rows = (sorted || [...calculated].sort((a,b) => b.totalVote-a.totalVote)).map((r) => {
     const rank = sorted ? sorted.findIndex(x => x.artist === r.artist) + 1 : "—";
     return '<tr><td>' + r.artist + '</td><td class="rank">' + rank + '</td><td>' + number(r.totalVote) +
@@ -578,8 +461,6 @@ function renderHistory(history) {
 }
 
 async function loadDashboard() {
-  $("data-status").textContent = "저장된 History 불러오는 중";
-  $("data-status").className = "status";
   try {
     const history = await getHistory();
     const dates = dailyHistoryDates(history);
@@ -602,12 +483,7 @@ async function loadDashboard() {
 
     renderFinalSnapshot({ rows, collectedAt });
     renderHistory(history);
-    renderThresholdHistory(history);
-    $("data-status").textContent = "HISTORY · " + dates.length + "일 · " + rows.length + " ARTISTS";
-    $("data-status").className = "status ok";
   } catch (error) {
-    $("data-status").textContent = "History 로드 실패";
-    $("data-status").className = "status error";
     $("current-table").querySelector("tbody").innerHTML =
       '<tr><td colspan="6">' + String(error.message) + '</td></tr>';
   }
