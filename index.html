@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#10131b">
   <title>MMA 2026 Calculator</title>
-  <link rel="stylesheet" href="./styles.css?v=20261113-top15-by-current-rank">
+  <link rel="stylesheet" href="./styles.css?v=20261113-remove-score-delta">
 </head>
 <body>
   <header class="hero">
@@ -22,8 +22,8 @@
   <main>
     <section class="panel">
       <div class="section-heading">
-        <div><span class="section-no">01</span><h2>현재 순위 및 득점 증감</h2></div>
-        <p>현재 득표 기준 · 직전 수집 스냅샷과 비교</p>
+        <div><span class="section-no">01</span><h2>현재 순위 및 점수</h2></div>
+        <p>현재 득표 및 점수 기준</p>
       </div>
       <div class="summary-grid">
         <article><span>현재 최고 Total Vote</span><strong id="max-vote">—</strong></article>
@@ -39,7 +39,6 @@
         </a>
       </div>
       <div class="table-wrap"><table id="current-table"><thead></thead><tbody><tr><td>데이터를 불러오는 중입니다.</td></tr></tbody></table></div>
-      <p class="hint" id="score-hint">Chart Score 설정값이 입력되면 Total Score 기준 순위와 점수 증감이 표시됩니다.</p>
     </section>
 
     <section class="panel">
@@ -78,6 +77,6 @@
 
     <footer>Data: Supabase mma · History: GitHub JSON · Timezone: Asia/Seoul</footer>
   </main>
-  <script type="module" src="./src/app.js?v=20261113-top15-by-current-rank"></script>
+  <script type="module" src="./src/app.js?v=20261113-remove-score-delta"></script>
 </body>
 </html>
