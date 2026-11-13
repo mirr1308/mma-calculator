@@ -5,28 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#10131b">
   <title>MMA 2026 Calculator</title>
-  <link rel="stylesheet" href="./styles.css?v=20261113-remove-score-delta">
+  <link rel="stylesheet" href="./styles.css?v=20261114-static-history">
 </head>
 <body>
   <header class="hero">
     <div class="eyebrow">MELON MUSIC AWARDS 2026</div>
     <h1>MMA Vote Tracker</h1>
-    <p>실시간 투표 점수와 날짜별 순위 · 득표 기록</p>
+    <p>최종 투표 점수와 날짜별 순위 · 득표 기록</p>
     <div class="hero-meta">
-      <span id="data-status" class="status">데이터 연결 중</span>
-      <span id="updated-at">업데이트 시각 확인 중</span>
-      <button id="refresh-button" class="primary">현재 데이터 새로고침</button>
+      <span id="data-status" class="status">History 연결 중</span>
+      <span id="updated-at">최종 수집 시각 확인 중</span>
     </div>
   </header>
 
   <main>
     <section class="panel">
       <div class="section-heading">
-        <div><span class="section-no">01</span><h2>현재 순위 및 점수</h2></div>
-        <p>현재 득표 및 점수 기준</p>
+        <div><span class="section-no">01</span><h2>최종 순위 및 점수</h2></div>
+        <p>2026년 11월 13일 최종 스냅샷 기준</p>
       </div>
       <div class="summary-grid">
-        <article><span>현재 최고 Total Vote</span><strong id="max-vote">—</strong></article>
+        <article><span>최종 최고 Total Vote</span><strong id="max-vote">—</strong></article>
         <a class="summary-link" href="https://www.melon.com/mma/2026/vote/category/" target="_blank" rel="noopener noreferrer">
           <span>OFFICIAL VOTING</span>
           <strong>Melon 투표 바로가기 <span class="link-arrow" aria-hidden="true">↗</span></strong>
@@ -75,8 +74,8 @@
       </div>
     </section>
 
-    <footer>Data: Supabase mma · History: GitHub JSON · Timezone: Asia/Seoul</footer>
+    <footer>Data: GitHub History JSON · Chart Score: src/config.js · Timezone: Asia/Seoul</footer>
   </main>
-  <script type="module" src="./src/app.js?v=20261113-remove-score-delta"></script>
+  <script type="module" src="./src/app.js?v=20261114-static-history"></script>
 </body>
 </html>
