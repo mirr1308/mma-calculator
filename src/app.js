@@ -120,74 +120,24 @@ function rankRows(rows) {
   return [...rows].sort((a,b) => b.totalScore - a.totalScore || b.totalVote - a.totalVote || a.artist.localeCompare(b.artist));
 }
 
-function previousSnapshot(history, currentCollectedAt) {
-  const meta = history?._meta || {};
-  const latest = meta.latestSnapshot;
-  const previous = meta.previousSnapshot;
-
-  // The latest saved snapshot represents the current reading if timestamps match.
-  // In that case compare against the snapshot immediately before it.
-  if (
-    latest && typeof latest.collectedAt === "string" &&
-    Date.parse(latest.collectedAt) <= Date.parse(currentCollectedAt)
-  ) {
-    if (
-      Date.parse(latest.collectedAt) === Date.parse(currentCollectedAt) &&
-      previous && Array.isArray(previous.rows)
-    ) {
-      return previous;
-    }
-    if (Array.isArray(latest.rows)) return latest;
-  }
-
-  // If the live Supabase value is newer than the latest saved History entry,
-  // compare against that latest saved entry while GitHub catches up.
-  if (latest && Array.isArray(latest.rows)) return latest;
-
-  // Backward compatibility for older History JSON without snapshot metadata.
-  const dates = dailyHistoryDates(history)
-    .filter((d) => d < currentCollectedAt.slice(0, 10));
-  return dates.length
-    ? { date: dates.at(-1), collectedAt: history._meta?.lastCollectedAtByDate?.[dates.at(-1)] || null, rows: dailyRows(history, dates.at(-1)) }
-    : null;
-}
-
 function table(el, headers, body) {
   el.querySelector("thead").innerHTML = "<tr>" + headers.map((h) => "<th>" + h + "</th>").join("") + "</tr>";
   el.querySelector("tbody").innerHTML = body || '<tr><td colspan="' + headers.length + '" class="muted">표시할 데이터가 없습니다.</td></tr>';
 }
 
-function renderCurrent(raw, history) {
+function renderCurrent(raw) {
   const calculated = calculate(raw.rows);
   const sorted = rankRows(calculated);
-  const previous = previousSnapshot(history, raw.collectedAt);
-  const previousCalculated = previous ? calculate(previous.rows || dailyRows(history, previous.date)) : [];
-  const previousByName = new Map(previousCalculated.map((r) => [r.artist, r]));
   $("max-vote").textContent = number(Math.max(...calculated.map(r => r.totalVote)));
   $("updated-at").textContent = "수집 " + new Date(raw.collectedAt).toLocaleString("ko-KR", { timeZone:"Asia/Seoul" }) + " KST";
 
   const rows = (sorted || [...calculated].sort((a,b) => b.totalVote-a.totalVote)).map((r) => {
-    const old = previousByName.get(r.artist);
-    const scoreDelta = old && r.totalScore !== null && Number.isFinite(CHART_SCORES[r.artist])
-      ? round2(r.totalScore - (old.chartScore + old.voteScore)) : null;
     const rank = sorted ? sorted.findIndex(x => x.artist === r.artist) + 1 : "—";
-    const deltaHtml = scoreDelta === null ? '<span class="muted">—</span>' :
-      '<span class="' + (scoreDelta > 0 ? "up" : scoreDelta < 0 ? "down" : "flat") + '">' +
-      (scoreDelta > 0 ? "▲ " : scoreDelta < 0 ? "▼ " : "– ") + Math.abs(scoreDelta).toFixed(2) + '</span>';
     return '<tr><td>' + r.artist + '</td><td class="rank">' + rank + '</td><td>' + number(r.totalVote) +
       '</td><td>' + r.voteScore.toFixed(2) + '</td><td>' + (r.chartScore === null ? "미설정" : r.chartScore.toFixed(2)) +
-      '</td><td class="score">' + (r.totalScore === null ? "미설정" : r.totalScore.toFixed(2)) +
-      '</td><td>' + deltaHtml + '</td></tr>';
+      '</td><td class="score">' + (r.totalScore === null ? "미설정" : r.totalScore.toFixed(2)) + '</td></tr>';
   }).join("");
-  table($("current-table"), ["아티스트","현재 순위","Total Vote","Vote Score","Chart Score","Total Score","점수 증감"], rows);
-  const complete = Object.values(CHART_SCORES).every(Number.isFinite);
-  $("score-hint").textContent = complete
-    ? (previous
-      ? (previous.collectedAt
-        ? new Date(previous.collectedAt).toLocaleString("ko-KR", { timeZone:"Asia/Seoul" }) + " 수집 기록과 비교했습니다."
-        : "직전 저장 기록과 비교했습니다.")
-      : "비교할 이전 수집 기록이 없어 증감은 표시하지 않습니다.")
-    : "Chart Score 30개 중 일부 또는 전체가 미설정입니다. config.js에 원본 점수를 입력하면 Total Score 순위와 점수 증감이 자동 계산됩니다.";
+  table($("current-table"), ["아티스트","현재 순위","Total Vote","Vote Score","Chart Score","Total Score"], rows);
 }
 
 const NET_VOTE_CHART_SERIES = [
@@ -593,7 +543,7 @@ async function refresh() {
     const collected = await collectVotes();
     $("data-status").textContent = "Supabase 저장 완료 · History 확인 중";
     const [current, history] = await Promise.all([getCurrent(), getHistory()]);
-    renderCurrent(current, history);
+    renderCurrent(current);
     renderHistory(history, current);
     if (collected.historySaved) {
       $("data-status").textContent = "저장 완료 · " + current.rowCount + " ARTISTS";
@@ -601,7 +551,6 @@ async function refresh() {
     } else {
       $("data-status").textContent = "투표 갱신 완료 · History 저장 실패";
       $("data-status").className = "status error";
-      $("score-hint").textContent = "Supabase 투표는 갱신됐지만 GitHub History 저장에 실패했습니다: " + (collected.historyError || "원인 미확인");
     }
   } catch (error) {
     $("data-status").textContent = "수집 실패";
@@ -620,7 +569,7 @@ async function loadDashboard() {
   $("data-status").className = "status";
   try {
     const [current, history] = await Promise.all([getCurrent(), getHistory()]);
-    renderCurrent(current, history);
+    renderCurrent(current);
     renderHistory(history, current);
     $("data-status").textContent = "LIVE · " + current.rowCount + " ARTISTS";
     $("data-status").className = "status ok";
