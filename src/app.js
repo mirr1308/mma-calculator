@@ -2,6 +2,14 @@ import { CHART_SCORES } from "./config.js";
 
 const HISTORY_URL = "./history/2026.json";
 
+const $ = (id) => document.getElementById(id);
+const number = (value) => new Intl.NumberFormat("ko-KR").format(value);
+const dateLabel = (iso) => {
+  const [, month, day] = iso.split("-");
+  return Number(month) + "/" + Number(day);
+};
+const round2 = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
+
 function dailyRows(history, date) {
   const entry = history[date];
   if (Array.isArray(entry)) return entry; // Legacy official daily format
