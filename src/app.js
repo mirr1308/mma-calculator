@@ -1,52 +1,6 @@
 import { CHART_SCORES } from "./config.js";
 
-const SUPABASE_URL = "https://kxrjzpwujwujtkjugpqu.supabase.co";
-const SUPABASE_KEY = "sb_publishable_JK2kqztf_qC3GRGcP7_T2A_BQr7xO46";
-const CURRENT_URL = SUPABASE_URL + "/functions/v1/global-top10?mode=current";
 const HISTORY_URL = "./history/2026.json";
-
-const $ = (id) => document.getElementById(id);
-const number = (v) => new Intl.NumberFormat("ko-KR").format(v);
-const dateLabel = (iso) => {
-  const [, month, day] = iso.split("-");
-  return Number(month) + "/" + Number(day);
-};
-const round2 = (v) => Math.round((v + Number.EPSILON) * 100) / 100;
-
-async function collectVotes() {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120_000);
-  try {
-    const response = await fetch(SUPABASE_URL + "/functions/v1/global-top10", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SUPABASE_KEY,
-        Authorization: "Bearer " + SUPABASE_KEY
-      },
-      body: JSON.stringify({ mode: "manual" }),
-      signal: controller.signal
-    });
-    const data = await response.json();
-    if (!response.ok || !data.ok) throw new Error(data.error || "투표 수집에 실패했습니다.");
-    return data;
-  } catch (error) {
-    if (error.name === "AbortError") throw new Error("수집 요청이 2분을 초과했습니다. Supabase와 History 저장 상태를 확인해 주세요.");
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function getCurrent() {
-  const response = await fetch(CURRENT_URL, {
-    headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY },
-    cache: "no-store"
-  });
-  const data = await response.json();
-  if (!response.ok || !data.ok) throw new Error(data.error || "현재 데이터를 가져오지 못했습니다.");
-  return data;
-}
 
 function dailyRows(history, date) {
   const entry = history[date];
@@ -82,18 +36,6 @@ function dailyHistoryDates(history) {
 }
 
 // The target artist identifier is kept in JS; it is never rendered as a label in the HTML.
-function koreaDateKey(iso) {
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: "Asia/Seoul",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit"
-    }).formatToParts(new Date(iso)).map((part) => [part.type, part.value])
-  );
-  return parts.year + "-" + parts.month + "-" + parts.day;
-}
-
 async function getHistory() {
   try {
     const response = await fetch(HISTORY_URL + "?v=" + Date.now(), { cache: "no-store" });
@@ -129,7 +71,7 @@ function renderCurrent(raw) {
   const calculated = calculate(raw.rows);
   const sorted = rankRows(calculated);
   $("max-vote").textContent = number(Math.max(...calculated.map(r => r.totalVote)));
-  $("updated-at").textContent = "수집 " + new Date(raw.collectedAt).toLocaleString("ko-KR", { timeZone:"Asia/Seoul" }) + " KST";
+  $("updated-at").textContent = "최종 수집 " + new Date(raw.collectedAt).toLocaleString("ko-KR", { timeZone:"Asia/Seoul" }) + " KST";
 
   const rows = (sorted || [...calculated].sort((a,b) => b.totalVote-a.totalVote)).map((r) => {
     const rank = sorted ? sorted.findIndex(x => x.artist === r.artist) + 1 : "—";
@@ -137,7 +79,7 @@ function renderCurrent(raw) {
       '</td><td>' + r.voteScore.toFixed(2) + '</td><td>' + (r.chartScore === null ? "미설정" : r.chartScore.toFixed(2)) +
       '</td><td class="score">' + (r.totalScore === null ? "미설정" : r.totalScore.toFixed(2)) + '</td></tr>';
   }).join("");
-  table($("current-table"), ["아티스트","현재 순위","Total Vote","Vote Score","Chart Score","Total Score"], rows);
+  table($("current-table"), ["아티스트","최종 순위","Total Vote","Vote Score","Chart Score","Total Score"], rows);
 }
 
 const NET_VOTE_CHART_SERIES = [
@@ -409,22 +351,10 @@ function renderNetVoteChart(history, dates, artists) {
 }
 
 
-function renderHistory(history, currentData) {
-  // Merge the newest read-only Supabase snapshot into its KST calendar-date column.
-  const viewHistory = { ...history, _meta: { ...(history?._meta || {}) } };
-  const liveDate = currentData?.collectedAt ? koreaDateKey(currentData.collectedAt) : null;
-  const savedSnapshot = history?._meta?.latestSnapshot;
-  if (liveDate && liveDate <= "2026-11-13" &&
-      Array.isArray(currentData.rows) && currentData.rows.length &&
-      (!savedSnapshot?.collectedAt || Date.parse(currentData.collectedAt) >= Date.parse(savedSnapshot.collectedAt))) {
-    viewHistory[liveDate] = { rows: currentData.rows };
-    viewHistory._meta.dailySnapshotAtByDate = { ...(viewHistory._meta.dailySnapshotAtByDate || {}), [liveDate]: currentData.collectedAt };
-  }
-  history = viewHistory;
-  // Sections 02–05 display dated columns only.
+function renderHistory(history) {
   const dates = dailyHistoryDates(history);
   if (!dates.length) {
-    const waiting = '<tr><td class="muted">아직 23:59(KST) 일일 스냅샷이 없습니다. 오늘 기록은 23:59 자동 수집 후 표시됩니다.</td></tr>';
+    const waiting = '<tr><td class="muted">표시할 날짜별 기록이 없습니다. history/2026.json을 확인해 주세요.</td></tr>';
     table($("rank-table"), ["기록 상태"], waiting);
     table($("score-trend-table"), ["기록 상태"], waiting);
     table($("votes-table"), ["기록 상태"], waiting);
@@ -432,16 +362,13 @@ function renderHistory(history, currentData) {
     return;
   }
 
-  // Sections 02–05 follow the live ranking in section 01 and display its top 15.
-  const currentCalculated = Array.isArray(currentData?.rows) ? calculate(currentData.rows) : [];
-  const currentRanked = rankRows(currentCalculated) ||
-    [...currentCalculated].sort((a,b) => b.totalVote - a.totalVote || a.artist.localeCompare(b.artist));
-  const artists = currentRanked.length
-    ? currentRanked.slice(0, 15).map((row) => row.artist)
-    : Object.entries(CHART_SCORES)
-        .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-        .slice(0, 15)
-        .map(([artist]) => artist);
+  // Sections 02–05 follow the ranking in the latest saved daily snapshot.
+  const latestDate = dates.at(-1);
+  const latestRows = dailyRows(history, latestDate);
+  const latestCalculated = calculate(latestRows);
+  const latestRanked = rankRows(latestCalculated) ||
+    [...latestCalculated].sort((a,b) => b.totalVote - a.totalVote || a.artist.localeCompare(b.artist));
+  const artists = latestRanked.slice(0, 15).map((row) => row.artist);
 
   // Section 03: daily Total Score change versus the previous calendar day.
   const scoresByDate = new Map(dates.map((date) => [
@@ -532,56 +459,39 @@ function renderHistory(history, currentData) {
   renderNetVoteChart(history, dates, artists);
 }
 
-async function refresh() {
-  const button = $("refresh-button");
-  button.disabled = true;
-  const originalLabel = button.textContent;
-  button.textContent = "투표 수집 중…";
-  $("data-status").textContent = "Melon · Berriz 수집 중";
-  $("data-status").className = "status";
-  try {
-    const collected = await collectVotes();
-    $("data-status").textContent = "Supabase 저장 완료 · History 확인 중";
-    const [current, history] = await Promise.all([getCurrent(), getHistory()]);
-    renderCurrent(current);
-    renderHistory(history, current);
-    if (collected.historySaved) {
-      $("data-status").textContent = "저장 완료 · " + current.rowCount + " ARTISTS";
-      $("data-status").className = "status ok";
-    } else {
-      $("data-status").textContent = "투표 갱신 완료 · History 저장 실패";
-      $("data-status").className = "status error";
-    }
-  } catch (error) {
-    $("data-status").textContent = "수집 실패";
-    $("data-status").className = "status error";
-    $("current-table").querySelector("tbody").innerHTML = '<tr><td colspan="7">' + String(error.message) + '</td></tr>';
-  } finally {
-    button.disabled = false;
-    button.textContent = originalLabel;
-  }
-}
-
 async function loadDashboard() {
-  const button = $("refresh-button");
-  button.disabled = true;
-  $("data-status").textContent = "저장된 데이터 불러오는 중";
+  $("data-status").textContent = "저장된 History 불러오는 중";
   $("data-status").className = "status";
   try {
-    const [current, history] = await Promise.all([getCurrent(), getHistory()]);
-    renderCurrent(current);
-    renderHistory(history, current);
-    $("data-status").textContent = "LIVE · " + current.rowCount + " ARTISTS";
+    const history = await getHistory();
+    const dates = dailyHistoryDates(history);
+    if (!dates.length) {
+      throw new Error("날짜별 History 기록을 찾지 못했습니다.");
+    }
+
+    const latestDate = dates.at(-1);
+    const rows = dailyRows(history, latestDate);
+    if (rows.length !== 30) {
+      throw new Error(latestDate + " 최종 기록의 아티스트 수가 30명이 아닙니다: " + rows.length);
+    }
+
+    const collectedAt =
+      history?._meta?.dailySnapshotAtByDate?.[latestDate] ||
+      history?._meta?.latestSnapshot?.collectedAt;
+    if (!collectedAt) {
+      throw new Error("최종 History의 수집 시각을 확인할 수 없습니다.");
+    }
+
+    renderCurrent({ rows, collectedAt });
+    renderHistory(history);
+    $("data-status").textContent = "HISTORY · " + dates.length + "일 · " + rows.length + " ARTISTS";
     $("data-status").className = "status ok";
   } catch (error) {
-    $("data-status").textContent = "연결 실패";
+    $("data-status").textContent = "History 로드 실패";
     $("data-status").className = "status error";
-    $("current-table").querySelector("tbody").innerHTML = '<tr><td colspan="7">' + String(error.message) + '</td></tr>';
-  } finally {
-    button.disabled = false;
+    $("current-table").querySelector("tbody").innerHTML =
+      '<tr><td colspan="6">' + String(error.message) + '</td></tr>';
   }
 }
 
-$("refresh-button").addEventListener("click", refresh);
 loadDashboard();
-window.setInterval(() => loadDashboard(), 5 * 60 * 1000);
